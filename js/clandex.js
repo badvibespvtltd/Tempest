@@ -421,7 +421,7 @@ function currentList(){
   const q=fold($("#filter").value);
   let list=q?(LISTS.all||[]).filter(r=>r.fold.includes(q)):listFor(prefs.region,prefs.group);
   if(prefs.map!=="all")list=list.filter(onMap);
-  if(prefs.onlyMissing)list=list.filter(r=>!rowComplete(r));
+  if(prefs.onlyMissing)list=list.filter(r=>!rowComplete(r)||lineMissing(r).length>0);
   return list;
 }
 function renderGrid(){
@@ -534,6 +534,7 @@ function renderResult(){
     if(n.rec){
       const have=n.rec.vs.filter(v=>isOwned(n.rec,v)).length;
       st=have===n.rec.vs.length?"own":"miss";
+      if(prefs.onlyMissing&&st==="own")return "";
       chips=n.rec.vs.map(v=>`<span class="vchip">${ballBtn(n.rec,v)}<span>${VARS[v]}</span></span>`).join("");
       label=`${have} / ${n.rec.vs.length}`;
     }
@@ -542,7 +543,8 @@ function renderResult(){
   });
   const head=`<div class="dhead"><h3>${esc(root.name)}: evolution line</h3><span class="sp"></span>${window.isOwner&&window.isOwner()?`<button type="button" class="btn ghost small dedit">Edit</button>`:""}<button type="button" class="btn ghost small dclose">Close</button></div>`;
   box.setAttribute("aria-label",`Details for ${root.name}`);
-  box.innerHTML=head+`<ul class="line">${rows.join("")}</ul>`;
+  const note=prefs.onlyMissing?`<p style="margin:0 0 8px;font-size:12px;color:var(--muted)">Showing only the incomplete evolutions. Untick "Only incomplete" to see the whole line.</p>`:"";
+  box.innerHTML=head+note+`<ul class="line">${rows.join("")}</ul>`;
 }
 
 function buildPayload(){

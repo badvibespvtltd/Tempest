@@ -25,7 +25,10 @@ function loadState(){
   try{const c=JSON.parse(lsGet(LS_CUSTOM)||"{}");if(c&&typeof c==="object")custom=c}catch(e){custom={}}
   const clan=window.VORTEX_CLAN;
   if(clan&&clan.owned){
-    const stamp=String(clan.exported||"")+"|"+(clan.count||0);
+    const sig=JSON.stringify(clan.owned)+JSON.stringify(clan.custom||{});
+    let h=5381;
+    for(let i=0;i<sig.length;i++)h=((h<<5)+h+sig.charCodeAt(i))|0;
+    const stamp=String(clan.exported||"")+"|"+(clan.count||0)+"|"+sig.length+"|"+(h>>>0).toString(36);
     if(lsGet(LS_STAMP)!==stamp){
       const o={};
       for(const [n,list] of Object.entries(clan.owned)){

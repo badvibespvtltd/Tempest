@@ -1,0 +1,14 @@
+convert_pricelist.py
+crawl_quiz.py
+merge_custom.py
+clan_reader.js
+*.py
+__pycache__/
+*.xlsx
+tempest-ticks.json
+*.json
+*.bak
+*.html
+!index.html
+.DS_Store
+Thumbs.db

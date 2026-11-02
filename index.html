@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tempest</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="180x180" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<script src="js/theme.js"></script>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/dark.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#fff"/><path d="M1 12a11 11 0 0 1 22 0z" fill="#e3342f"/><path d="M1 12h22" stroke="#1d1d1d" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="#fff" stroke="#1d1d1d" stroke-width="2"/><circle cx="12" cy="12" r="11" fill="none" stroke="#1d1d1d" stroke-width="2"/></symbol></svg>
+
+<header class="top">
+  <h1><a class="brand" href="#home">Tempest</a><span class="crumb" id="crumb"></span></h1>
+  <div class="tools">
+    <span class="tools" id="dexTools" hidden>
+      <span class="state" id="saveState"></span>
+      <button class="btn" id="btnExport" type="button">Export</button>
+      <button class="btn" id="btnSite" type="button" title="Makes data/clan-dex.js for publishing the website">Export site file</button>
+      <button class="btn" id="btnImport" type="button">Import</button>
+      <button class="btn ghost" id="btnClear" type="button">Clear all</button>
+      <input type="file" id="fileImport" accept=".json,application/json" hidden>
+    </span>
+    <a class="btn ghost" id="btnHome" href="#home" hidden>Home</a>
+    <button class="btn ghost" id="btnTheme" type="button">Light mode</button>
+  </div>
+</header>
+
+<section class="hub" id="home" aria-label="Home">
+  <div class="hub-hero">
+    <h2>Pokémon Vortex Toolkit</h2>
+  </div>
+  <div class="tiles">
+    <a class="tile" href="#dex" style="--a:#e03a2f;--b:#6d0f0a">
+      <div class="tile-art"><svg viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><circle cx="32" cy="32" r="24"/><path d="M8 32h48"/><circle cx="32" cy="32" r="8" fill="#ffffff33"/></g></svg></div>
+      <div class="tile-body"><h3>ClanDex</h3><p>Track every Pokémon and variant the clan has caught, filter by map and see what is still missing.</p><div class="tile-stat" id="statDex">&nbsp;</div></div>
+      <span class="tile-go">Open →</span>
+    </a>
+    <a class="tile" href="#quiz" style="--a:#3a7bd5;--b:#12305e">
+      <div class="tile-art"><svg viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14h44a4 4 0 0 1 4 4v22a4 4 0 0 1-4 4H30l-12 10V44h-8a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4z"/><path d="M26 25a6 6 0 1 1 9 5c-2 1.2-3 2-3 4"/></g><circle cx="32" cy="38.5" r="2.2" fill="#fff"/></svg></div>
+      <div class="tile-body"><h3>Quiz Practice</h3><p>Practice for the hourly Discord quiz: types, unscrambles, evolutions, badges, footprints and more.</p></div>
+      <span class="tile-go">Open →</span>
+    </a>
+    <a class="tile" href="#prices" style="--a:#c98a00;--b:#5e3f00">
+      <div class="tile-art"><svg viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 32 32 8h20a4 4 0 0 1 4 4v20L32 56z"/><circle cx="44" cy="20" r="3" fill="#fff"/></g></svg></div>
+      <div class="tile-body"><h3>Pricelist</h3><p>Community price guide for valuable Pokémon, events, fossils, avatars and items, with search and sorting.</p><div class="tile-stat" id="statPrices">&nbsp;</div></div>
+      <span class="tile-go">Open →</span>
+    </a>
+  </div>
+</section>
+
+<div id="loader" class="panel loader" hidden>
+  <h2>Pokémon data not found</h2>
+  <p>Put this page in the same folder as the <code>data</code> folder made by <code>crawl.py</code> (it must contain <code>pokemon.js</code>), then reload.</p>
+  <p>Or load <code>pokemon.json</code> directly (it will not be remembered after a reload):</p>
+  <input type="file" id="fileData" accept=".json,application/json">
+</div>
+
+<main class="layout" id="app" hidden>
+  <section class="panel" id="dex" aria-label="Clan Pokédex">
+    <div class="bar split"><span id="totalBar">Clan Pokédex</span><span class="modes"><button type="button" class="mode" data-mode="table" aria-pressed="true">Table</button><button type="button" class="mode" data-mode="overview" aria-pressed="false">Overview</button><button type="button" class="mode" data-mode="breakdown" aria-pressed="false">Breakdown</button></span></div>
+    <div id="tableView">
+      <div class="tabs" id="tabs" role="tablist" aria-label="Regions"></div>
+      <div class="filters">
+        <input type="search" id="filter" placeholder="Search for a Pokémon" aria-label="Search the Pokédex">
+        <label>Map <select id="mapFilter" aria-label="Show only Pokémon found on this map"></select></label>
+        <label><input type="checkbox" id="onlyMissing"> Only incomplete</label>
+        <button type="button" class="btn ghost small" id="btnManage" aria-pressed="false">Manage entries: Off</button>
+      </div>
+      <div class="dexbody">
+        <nav class="side" id="side" aria-label="Pokédex groups"></nav>
+        <div>
+          <div class="bar" id="regionBar"></div>
+          <div class="scroller"><div class="grid" role="table" id="grid"></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="overview" hidden></div>
+    <div id="breakdown" hidden></div>
+  </section>
+</main>
+
+<section class="panel" id="quiz" aria-label="Quiz practice" hidden style="max-width:1500px;margin:14px auto">
+  <div class="bar">Quiz Practice</div>
+  <div class="qwrap" id="qbody"></div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="vsil" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"/><feGaussianBlur stdDeviation="1.6"/><feComponentTransfer><feFuncA type="linear" slope="14" intercept="-6"/></feComponentTransfer></filter></svg>
+</section>
+
+<section class="panel" id="prices" aria-label="Pricelist" hidden style="max-width:1500px;margin:14px auto">
+  <div class="bar">Pricelist</div>
+  <div class="pr-wrap" id="prBody"></div>
+</section>
+
+<dialog id="manageDialog">
+  <h3>Manage entries</h3>
+  <p>Registering is locked by default so a stray click can't change your list.</p>
+  <p>Turning this on lets you click the balls to register or unregister a variant, and click a Pokémon's number to register or clear every variant at once. Turn it off again when you're done.</p>
+  <label class="chk"><input type="checkbox" id="manageSkip"> Do not show this popup again</label>
+  <div class="row">
+    <button class="btn ghost" type="button" data-act="cancel">Cancel</button>
+    <button class="btn" type="button" data-act="ok">Turn on</button>
+  </div>
+</dialog>
+<dialog id="importDialog">
+  <h3>Import</h3>
+  <p id="importInfo"></p>
+  <div class="row">
+    <button class="btn ghost" type="button" data-act="cancel">Cancel</button>
+    <button class="btn" type="button" data-act="merge">Merge with mine</button>
+    <button class="btn" type="button" data-act="replace">Replace mine</button>
+  </div>
+</dialog>
+<dialog id="editDialog">
+  <form id="editForm" autocomplete="off">
+    <h3 id="editTitle">Add Pokémon</h3>
+    <div class="fgrid">
+      <label>Name<input type="text" id="fName" required placeholder="e.g. Revavroom"></label>
+      <label>Dex number<input type="text" id="fDex" required inputmode="numeric" placeholder="e.g. 966"></label>
+      <label>Type 1<select id="fT1"></select></label>
+      <label>Type 2<select id="fT2"></select></label>
+      <label>Collection<select id="fClass"></select></label>
+      <label>Where it is found<select id="fKind"><option value="map">On map(s)</option><option value="roaming">Roaming (changes hourly)</option><option value="rotm">Roamer of the Month</option><option value="none">Not found in the wild</option><option value="unknown">Unknown</option></select></label>
+      <fieldset class="wide" id="fVars"><legend>Variants that exist</legend></fieldset>
+      <label class="wide">Maps (comma separated)<input type="text" id="fMaps" placeholder="Route 2, Route 5"></label>
+      <label class="wide">Other ways to get it (comma separated)<input type="text" id="fObtain" placeholder="PokéBay, Trade"></label>
+      <label class="wide">Evolves into (one per line: Name | requirement)<textarea id="fEvo" placeholder="Pidgeotto | Level 18"></textarea></label>
+      <label class="wide">Icon (optional)<input type="file" id="fIcon" accept="image/*"></label>
+    </div>
+    <div class="row"><button class="btn danger" type="button" id="fDelete" hidden>Delete</button><span class="sp"></span><button class="btn ghost" type="button" id="fCancel">Cancel</button><button class="btn" type="submit">Save</button></div>
+  </form>
+</dialog>
+<div id="toast" role="status"><span id="toastText"></span><button type="button" id="toastUndo" hidden>Undo</button></div>
+
+<script src="data/pokemon.js"></script>
+<script src="data/clan-dex.js"></script>
+<script src="data/quiz-data.js"></script>
+<script src="data/quiz-moves.js"></script>
+<script src="data/quiz-badges.js"></script>
+<script src="data/quiz-footprints.js"></script>
+<script src="data/quiz-items.js"></script>
+<script src="data/pricelist.js"></script>
+<script src="js/clandex.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/prices.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

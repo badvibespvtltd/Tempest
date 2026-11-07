@@ -70,3 +70,12 @@ html[data-theme=dark] .drow{position:relative}
 html[data-theme=dark] .drow::before{content:"";position:absolute;inset:0;background:#000;opacity:.52;pointer-events:none}
 html[data-theme=dark] .drow>*{position:relative}
 html[data-theme=dark] .drow{border-bottom-color:#0006}
+html[data-theme=dark] .qtab{background:#26262b;color:#e6e6ea;box-shadow:0 2px 0 #0008}
+html[data-theme=dark] .qtab[aria-selected=true]{color:#fff}
+html[data-theme=dark] .kbadge{color:var(--kc)}
+html[data-theme=dark] .qtab[aria-selected=true]{background:linear-gradient(140deg,var(--kc),var(--kc2));border-color:var(--kc2);box-shadow:0 3px 0 var(--kc2),0 6px 12px #0006}
+html[data-theme=dark] .qseg{border-color:#55565e}
+html[data-theme=dark] .qsegb{background:#2a2a30;color:#e6e6ea;border-right-color:#55565e}
+html[data-theme=dark] .qsegb:hover{background:#34343b}
+html[data-theme=dark] .qsegb[aria-pressed=true]{background:linear-gradient(var(--red1),var(--red2));color:#fff}
+html[data-theme=dark] #qtime.low{color:#ff6b61}

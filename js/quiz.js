@@ -15,7 +15,7 @@ const rnd=n=>Math.floor(Math.random()*n);
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
 const TC={normal:"#A8A77A",fire:"#EE8130",water:"#4A90E2",electric:"#F7D02C",grass:"#7AC74C",ice:"#96D9D6",fighting:"#C22E28",poison:"#A33EA1",ground:"#E2BF65",flying:"#A98FF3",psychic:"#F95587",bug:"#A6B91A",rock:"#B6A136",ghost:"#735797",dragon:"#6F35FC",dark:"#705746",steel:"#B7B7CE",fairy:"#D685AD"};
 const KINDS={
-  types:"Name a Pokémon by types",
+  types:"Type Combinations",
   scramblemove:"Unscramble attack",
   scramblemon:"Unscramble Pokémon",
   evolevel:"Evolution level",
@@ -218,11 +218,100 @@ const BUILD={
   }
 };
 
-function makeQ(kind,used){
-  const it=pickW(P[kind],kind,used);
+function mk(kind,it){
   const q=BUILD[kind](it);
-  q.kind=kind;q.key=it.key;q.bg=KC[kind];q.shown=new Set();
+  q.kind=kind;q.key=it.key;q.bg=KC[kind];q.shown=new Set();q.item=it;
   return q;
+}
+function makeQ(kind,used){
+  return mk(kind,pickW(P[kind],kind,used));
+}
+
+const BATCH={footprint:20,whos:20,scramblemon:20,scramblemove:20,types:12,evolevel:15,evoitem:10,badge:8};
+const NEED=2;
+const adm=()=>typeof window.isOwner==="function"&&window.isOwner();
+const ORD={};
+function seeded(seed){
+  let a=seed>>>0;
+  return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
+}
+function ordered(k){
+  if(ORD[k])return ORD[k];
+  const l=P[k].slice(),D=DEX();
+  const dn=x=>{const r=x.rec||D[x.name];return parseInt(x.dex||(r&&r.dex)||"9999",10)||9999};
+  const cmp=(a,b)=>String(a).localeCompare(String(b));
+  if(k==="footprint"||k==="whos"||k==="scramblemon")l.sort((a,b)=>dn(a)-dn(b)||cmp(a.key,b.key));
+  else if(k==="evolevel")l.sort((a,b)=>a.level-b.level||cmp(a.to.name,b.to.name));
+  else if(k==="evoitem")l.sort((a,b)=>cmp(a.item,b.item)||cmp(a.from.name,b.from.name));
+  else if(k==="types")l.sort((a,b)=>cmp(a.key,b.key));
+  else if(k==="scramblemove"){const r=seeded(7919);for(let i=l.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[l[i],l[j]]=[l[j],l[i]]}}
+  return ORD[k]=l;
+}
+function gs(k){
+  const g=S.grow||(S.grow={});
+  if(!g[k]){const n=Math.min(BATCH[k],P[k].length);g[k]={n,from:0,seen:0,m:{}}}
+  return g[k];
+}
+const streak=(g,x)=>g.m[x.key]||0;
+function growPick(k){
+  const g=gs(k),pool=ordered(k).slice(0,g.n);
+  const un=shuffle(pool.filter(x=>streak(g,x)<NEED)),done=shuffle(pool.filter(x=>streak(g,x)>=NEED));
+  const N=Math.min(10,pool.length);
+  let rev=Math.min(done.length,3);
+  if(un.length<N-rev)rev=Math.min(done.length,N-un.length);
+  const fresh=un.slice(0,N-rev);
+  return shuffle(fresh.concat(done.slice(0,N-fresh.length)));
+}
+function growStats(k){
+  const g=gs(k),L=ordered(k),pool=L.slice(0,g.n),batch=L.slice(g.from,g.n);
+  const cnt=f=>batch.filter(x=>f(g.m[x.key])).length;
+  return {g,total:L.length,n:g.n,mastered:pool.filter(x=>streak(g,x)>=NEED).length,bDone:cnt(v=>v>=NEED),bOnce:cnt(v=>v===1),bMiss:cnt(v=>v===0),bNew:cnt(v=>v===undefined),bN:batch.length,L};
+}
+function startGrow(k){
+  P=prepare();
+  if(!P||!P[k]||!P[k].length)return;
+  const g=gs(k);
+  if(g.seen<g.n){growStudy(k);return}
+  runGrow(k);
+}
+function growStudy(k){
+  const g=gs(k),items=ordered(k).slice(g.seen,g.n);
+  $("#qbody").innerHTML=`<div class="qsum"><h3>New batch: ${items.length} to learn</h3><p>${kBadge(k)} Look these over first. Then answer questions on them until each one is right twice in a row, and the next batch unlocks.</p>${window.VS?VS.tiles(k,items):""}<div class="qform"><button class="btn" id="qgostart" data-k="${k}" type="button">Start questions</button><button class="btn ghost" id="qhome" type="button">Back</button></div></div>`;
+  window.scrollTo(0,0);
+}
+function runGrow(k){
+  clearTimeout(adv);
+  const items=growPick(k);
+  run={qs:items.map(it=>mk(k,it)),i:0,res:[],t0:Date.now(),qt:0,answered:false,limit:+opt().limit||0,auto:opt().auto!==false,grow:k};
+  warm(run.qs[0]);warm(run.qs[1]);
+  showQ();
+}
+function growFinish(){
+  clearInterval(timer);clearTimeout(adv);
+  const k=run.grow;
+  const ok=run.res.filter(r=>r.ok).length,tot=Date.now()-run.t0;
+  let st=growStats(k);
+  let unlocked=0;
+  if(st.bN&&st.bDone===st.bN&&st.n<st.total){
+    const g=st.g;
+    g.from=g.n;g.n=Math.min(st.total,g.n+BATCH[k]);unlocked=g.n-g.from;
+    saveS();
+    st=growStats(k);
+  }
+  const all=st.n>=st.total&&st.mastered===st.total;
+  const msg=unlocked?`Batch cleared. ${unlocked} new item${unlocked>1?"s":""} unlocked.`:all?"Everything in this type is mastered.":"";
+  const parts=[["Mastered",st.bDone,"ok"],["Right once",st.bOnce,"mid"],["Missed",st.bMiss,"bad"],["Not asked yet",st.bNew,"new"]];
+  const stage=all?"":`<div class="qstage">${parts.map(([l,n,c])=>`<span class="${c}"><b>${n}</b>${l}</span>`).join("")}</div><p class="qnote">Current batch of ${st.bN}. An item is mastered when you answer it right twice in a row. Once all ${st.bN} are mastered, the next batch unlocks.</p>`;
+  $("#qbody").innerHTML=`
+  <div class="qsum"><h3>${ok} / ${run.res.length} correct</h3>
+  <p>${kBadge(k)}</p>${msg?`<p><b>${esc(msg)}</b></p>`:""}${stage}
+  <p class="qnote">${st.n} of ${st.total} unlocked · ${st.mastered} mastered overall · ${(tot/1000).toFixed(0)}s this round</p>
+  <div class="qprog"><i style="width:${st.total?(100*st.mastered/st.total).toFixed(1):0}%"></i><b style="width:${st.total?(100*(st.n-st.mastered)/st.total).toFixed(1):0}%"></b></div>
+  <table class="qtable"><thead><tr><th>#</th><th>Type</th><th>Your answer</th><th>Correct answer</th><th>Time</th></tr></thead><tbody>
+  ${run.res.map((r,i)=>`<tr class="${r.ok?"ok":"bad"}"><td>${i+1}</td><td>${kBadge(r.kind)}</td><td>${esc(r.given)}${r.hinted?" (hint)":""}</td><td>${r.ok?"✓":esc(r.answer)}</td><td>${(r.ms/1000).toFixed(1)}s</td></tr>`).join("")}
+  </tbody></table>
+  <div class="qform">${all?"":`<button class="btn" id="qgrow" data-k="${k}" type="button">${unlocked?"Study the new batch":"Next round"}</button>`}<button class="btn ghost" id="qhome" type="button">Back</button></div></div>`;
+  run.finished=true;
 }
 
 function planKinds(n,kinds){
@@ -351,15 +440,23 @@ function answer(skip,why){
   run.answered=true;clearInterval(timer);
   run.res.push({kind:q.kind,ok,ms,given:skip?(why==="time"?"(time up)":"(skipped)"):raw.trim(),answer:q.answer,hinted:q.shown.size>0});
   record(q,ok,ms);
+  if(run.grow){
+    const g=gs(q.kind);
+    if(!ok)g.m[q.key]=0;
+    else if(!q.shown.size)g.m[q.key]=streak(g,q)+1;
+    saveS();
+  }
   $("#qin").disabled=true;
   const last=run.i===run.qs.length-1;
   $("#qfb").innerHTML=`<div class="qres ${ok?"ok":"bad"}"><b>${ok?"Correct!":(why==="time"?"Time's up.":skip?"Skipped.":"Not quite.")}</b><span>${(ms/1000).toFixed(1)}s${ok&&run.auto?" · next question…":""}${q.shown.size?" · "+q.shown.size+" letter"+(q.shown.size>1?"s":"")+" revealed":""}</span></div><div class="qform"><button class="btn" id="qnext" type="button">${last?"See results":"Next"}</button></div>`;
   showAnswer(q,ok);
+  if(!ok&&window.VS)$("#qfb").insertAdjacentHTML("beforeend",VS.mix(q,skip?"":raw));
   $("#qnext").focus();
   if(ok&&run.auto)adv=setTimeout(()=>{if(run&&!run.finished&&run.answered)$("#qnext")&&$("#qnext").click()},1000);
 }
 
 function finish(){
+  if(run.grow){growFinish();return}
   clearInterval(timer);clearTimeout(adv);
   const ok=run.res.filter(r=>r.ok).length,tot=Date.now()-run.t0;
   if(run.qs.length===10&&(!S.best||ok>S.best.ok||(ok===S.best.ok&&tot<S.best.ms)))S.best={ok,ms:tot};
@@ -389,7 +486,8 @@ function home(){
   const rows=ORDER.map(k=>{
     const t=S.t[k],n=P[k]?P[k].length:0;
     const need=(k==="badge"||k==="footprint")&&!n;
-    return `<tr class="${n?"":"dim"}"><td>${kBadge(k)}</td><td>${n?n:(need?"run the crawler":"none")}</td><td>${t?t.n:0}</td><td>${t&&t.n?Math.round(100*t.ok/t.n)+"%":"–"}</td><td>${t&&t.n?(t.ms/t.n/1000).toFixed(1)+"s":"–"}</td></tr>`;
+    const gg=n&&S.grow&&S.grow[k]?S.grow[k]:null;
+    return `<tr class="${n?"":"dim"}"><td>${kBadge(k)}</td><td>${n?n:(need?"run the crawler":"none")}</td>${adm()?`<td>${gg?gg.n+" / "+n:"–"}</td>`:""}<td>${t?t.n:0}</td><td>${t&&t.n?Math.round(100*t.ok/t.n)+"%":"–"}</td><td>${t&&t.n?(t.ms/t.n/1000).toFixed(1)+"s":"–"}</td></tr>`;
   }).join("");
   box.innerHTML=`
   <div class="qhome">
@@ -401,13 +499,24 @@ function home(){
     </div>
     <div class="qdrillhead">Drill a single type</div>
     <div class="qtabs" role="tablist" aria-label="Drill type">${tabs}</div>
-    <div class="qform"><button class="btn qdrillbtn" id="qdrill" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Drill "+esc(KINDS[pick])+" (10)":"Drill (10)"}</button></div>
-    <table class="qtable"><thead><tr><th>Type</th><th>Pool</th><th>Asked</th><th>Right</th><th>Avg time</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="qform qmodes">
+      <button class="btn qdrillbtn" id="qstudy" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Study sheet":"Study sheet"}</button>
+      ${adm()?`<button class="btn qdrillbtn" id="qbuild" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Build up":"Build up"}</button>`:""}
+      <button class="btn qdrillbtn" id="qdrill" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Drill (10)":"Drill (10)"}</button>
+    </div>
+    ${pick&&adm()?buildLine(pick):""}
+    <table class="qtable"><thead><tr><th>Type</th><th>Items</th>${adm()?"<th>Build-up</th>":""}<th>Asked</th><th>Right</th><th>Avg time</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="qform"><button class="btn ghost small" id="qreset" type="button">Reset quiz stats</button></div>
     ${P.badge.length&&P.footprint.length?"":'<p class="qnote">Badge and footprint questions need <code>data/quiz-badges.js</code> and <code>data/quiz-footprints.js</code> from <code>crawl_quiz.py</code>.</p>'}
   </div>`;
 }
 
+function buildLine(k){
+  const g=S.grow&&S.grow[k];
+  if(!g)return `<p class="qnote">Build up: starts with ${Math.min(BATCH[k],P[k].length)} ${esc(KINDS[k]).toLowerCase()} items and unlocks the next batch once you answer each one right twice in a row.</p>`;
+  const st=growStats(k);
+  return `<p class="qnote">Build up: ${st.n} of ${st.total} unlocked, ${st.mastered} mastered. <button class="qlinkbtn" id="qgreset" type="button">Restart build-up</button></p>`;
+}
 function openQuiz(){
   $("#quiz").hidden=false;
   home();
@@ -416,17 +525,25 @@ function closeQuiz(){
   clearInterval(timer);clearTimeout(adv);
   $("#quiz").hidden=true;
 }
-window.VQ={open:openQuiz,close:closeQuiz};
+window.VQ={open:openQuiz,close:closeQuiz,home,core:()=>{P=prepare();return {P,KINDS,ORDER,KC,TC,kIcon,kBadge,kVars,icon,esc,norm,baseName,nameAccept,Q,DEX,sprOf,img,ALIAS,itemDir,ITEMFILE}}};
 $("#quiz").addEventListener("click",e=>{
   const sg=e.target.closest(".qsegb");
   if(sg){opt().limit=+sg.dataset.lim;saveS();home();return}
   const tb=e.target.closest(".qtab");
   if(tb){if(!tb.disabled){pick=tb.dataset.k;home();const a=$(".qtab[aria-selected=true]");a&&a.focus()}return}
-  const db=e.target.closest("#qdrill");
-  const id=db?"qdrill":e.target.id;
+  const db=e.target.closest("#qdrill,#qstudy,#qbuild");
+  const id=db?db.id:e.target.id;
   if(id==="qstart")startRun(avail(),10);
   else if(id==="qdrill"&&pick)startRun([pick],10);
-  else if(id==="qreset"){if(confirm("Reset all quiz stats and weak spots?")){S={t:{},weak:{},best:null,opt:S.opt};saveS();home()}}
+  else if(id==="qstudy"&&pick){if(window.VS)VS.open(pick)}
+  else if(id==="qbuild"&&pick&&adm())startGrow(pick);
+  else if(id==="qgrow"||id==="qgostart"){
+    const k=e.target.dataset.k;
+    if(id==="qgostart"){const g=gs(k);g.seen=g.n;saveS()}
+    startGrow(k);
+  }
+  else if(id==="qgreset"){if(confirm("Restart build-up for "+KINDS[pick]+" from the first batch?")){if(S.grow)delete S.grow[pick];saveS();home()}}
+  else if(id==="qreset"){if(confirm("Reset all quiz stats and weak spots?")){S={t:{},weak:{},best:null,opt:S.opt,grow:S.grow};saveS();home()}}
   else if(id==="qhint")reveal();
   else if(id==="qskip")answer(true);
   else if(id==="qquit")home();

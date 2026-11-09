@@ -87,3 +87,14 @@ html[data-theme=dark] .pr-inp{background:#26262b;color:#e6e6ea;border-color:#ff6
 html[data-theme=dark] .pr-ename:hover{color:#ff6b61}
 html[data-theme=dark] .pr-derr{color:#ff8a80}
 html[data-theme=dark] .btn.danger{background:#26262b;color:#ff8a80;border-color:#ff8a80}
+html[data-theme=dark] .qprog{background:#34343b}
+html[data-theme=dark] .qlinkbtn{color:#ff8a80}
+html[data-theme=dark] .vs-t,html[data-theme=dark] .vs-row,html[data-theme=dark] .vs-mix{background:#26262b;border-color:#44454d;color:#e6e6ea}
+html[data-theme=dark] .vs-chip{background:#303036;border-color:#44454d;color:#e6e6ea}
+html[data-theme=dark] .vs-lv{color:#ff8a80}
+html[data-theme=dark] .vs-grp h4{border-bottom-color:#c02020}
+html[data-theme=dark] .qstage span{background:#26262b;border-color:#44454d;color:#d8d8de}
+html[data-theme=dark] .qstage .ok b{color:#5fd68a}
+html[data-theme=dark] .qstage .mid b{color:#f0b84a}
+html[data-theme=dark] .qstage .bad b{color:#ff8a80}
+html[data-theme=dark] .qstage .new b{color:#b8b8c0}

@@ -79,3 +79,11 @@ html[data-theme=dark] .qsegb{background:#2a2a30;color:#e6e6ea;border-right-color
 html[data-theme=dark] .qsegb:hover{background:#34343b}
 html[data-theme=dark] .qsegb[aria-pressed=true]{background:linear-gradient(var(--red1),var(--red2));color:#fff}
 html[data-theme=dark] #qtime.low{color:#ff6b61}
+html[data-theme=dark] .pr-admin{background:#2a1c1c;border-color:#c02020}
+html[data-theme=dark] .pr-admin .btn[aria-pressed=true]{box-shadow:0 0 0 2px #1c1c20,0 0 0 4px #c02020}
+html[data-theme=dark] .pr-ed{outline-color:#fff3}
+html[data-theme=dark] .pr-ed:hover,html[data-theme=dark] .pr-ed:focus-visible{outline-color:#ff6b61}
+html[data-theme=dark] .pr-inp{background:#26262b;color:#e6e6ea;border-color:#ff6b61}
+html[data-theme=dark] .pr-ename:hover{color:#ff6b61}
+html[data-theme=dark] .pr-derr{color:#ff8a80}
+html[data-theme=dark] .btn.danger{background:#26262b;color:#ff8a80;border-color:#ff8a80}

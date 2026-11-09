@@ -332,3 +332,19 @@ kbd{font:600 10px/1 ui-monospace,Menlo,Consolas,monospace;border:1px solid curre
 .qcard.k-footprint .qside .qcircle:not(.multi){width:min(86%,200px)}
 .qcard.k-footprint .qside.pair .qcircle{width:45%}
 .qcard.k-footprint .qtxt{padding-right:2%}
+.pr-admin{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;padding:8px 10px;border:1px dashed #a30000;border-radius:8px;background:#fff6f6}
+.pr-admin .btn:disabled{opacity:.45;cursor:not-allowed}
+.pr-admin .btn[aria-pressed=true]{box-shadow:0 0 0 2px #fff,0 0 0 4px #a30000}
+.pr-state{flex:1;min-width:200px;text-align:right;font-size:12px;color:var(--muted)}
+.pr-bt{margin-left:auto;display:flex;gap:6px}
+.pr-editing .pr-ed,.pr-ed{cursor:text}
+.pr-ed{outline:1px dashed #0003;outline-offset:-3px}
+.pr-ed:hover,.pr-ed:focus-visible{outline:2px solid #a30000;outline-offset:-2px}
+.pr-ed.editing{padding:3px 4px;outline:0}
+.pr-inp{width:100%;min-width:140px;box-sizing:border-box;padding:4px 6px;border:2px solid #a30000;border-radius:4px;text-align:center;background:#fff;color:#222}
+.pr-ename{background:none;border:0;padding:0;font:inherit;font-weight:600;color:inherit;text-align:left;cursor:pointer;text-decoration:underline dotted}
+.pr-ename:hover{color:#a30000}
+.pr-derr{margin:8px 0 0;min-height:1em;font-size:12px;color:#b3261e}
+#prDialog{width:min(480px,92vw)}
+#prDialog .row .sp{flex:1}
+#prDialog .fgrid{grid-template-columns:1fr}

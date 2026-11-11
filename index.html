@@ -63,14 +63,14 @@
 
 <main class="layout" id="app" hidden>
   <section class="panel" id="dex" aria-label="Clan Pokédex">
-    <div class="bar split"><span id="totalBar">Clan Pokédex</span><span class="modes"><button type="button" class="mode" data-mode="table" aria-pressed="true">Table</button><button type="button" class="mode" data-mode="overview" aria-pressed="false">Overview</button><button type="button" class="mode" data-mode="breakdown" aria-pressed="false">Breakdown</button></span></div>
+    <div class="bar split"><span id="totalBar">Clan Pokédex</span><span class="modes"><button type="button" class="mode" data-profile="clan" aria-pressed="true" hidden>Clan</button><button type="button" class="mode" data-profile="mine" aria-pressed="false" hidden>My dex</button><button type="button" class="mode" data-mode="table" aria-pressed="true">Table</button><button type="button" class="mode" data-mode="overview" aria-pressed="false">Overview</button><button type="button" class="mode" data-mode="breakdown" aria-pressed="false">Breakdown</button></span></div>
     <div id="tableView">
       <div class="tabs" id="tabs" role="tablist" aria-label="Regions"></div>
       <div class="filters">
         <input type="search" id="filter" placeholder="Search for a Pokémon" aria-label="Search the Pokédex">
         <label>Map <select id="mapFilter" aria-label="Show only Pokémon found on this map"></select></label>
         <label><input type="checkbox" id="onlyMissing"> Only incomplete</label>
-        <button type="button" class="btn ghost small" id="btnManage" aria-pressed="false">Manage entries: Off</button>
+        <button type="button" class="btn ghost small" id="btnMissing" hidden>Missing list…</button><button type="button" class="btn ghost small" id="btnManage" aria-pressed="false">Manage entries: Off</button>
       </div>
       <div class="dexbody">
         <nav class="side" id="side" aria-label="Pokédex groups"></nav>
@@ -105,6 +105,14 @@
     <button class="btn ghost" type="button" data-act="cancel">Cancel</button>
     <button class="btn" type="button" data-act="ok">Turn on</button>
   </div>
+</dialog>
+<dialog id="missingDialog" style="max-width:560px;width:92vw">
+  <h3>Missing list</h3>
+  <p>Paste the Pokémon you are missing, one per line (for example <code>Shiny Caterpie</code> or <code>Dark Iron Boulder</code>). A name with no variant means Normal. Everything not listed is marked as caught, replacing your current ticks.</p>
+  <textarea id="missingText" rows="10" style="width:100%;font:12px/1.4 monospace" spellcheck="false" placeholder="Dark Iron Boulder&#10;Shiny Caterpie (Christmas)&#10;Archeops"></textarea>
+  <label class="chk">Or load a text file <input type="file" id="missingFile" accept=".txt,text/plain"></label>
+  <p id="missingInfo" role="status"></p>
+  <div class="row"><button class="btn ghost" type="button" data-act="close">Close</button><button class="btn" type="button" data-act="apply">Apply</button></div>
 </dialog>
 <dialog id="importDialog">
   <h3>Import</h3>
@@ -144,6 +152,7 @@
 <script src="data/quiz-footprints.js"></script>
 <script src="data/quiz-items.js"></script>
 <script src="data/pricelist.js"></script>
+<script src="js/admin.js"></script>
 <script src="js/clandex.js"></script>
 <script src="js/quiz.js"></script>
 <script src="js/study.js"></script>

@@ -7,8 +7,10 @@ const LS_OWNED="vortexdex.owned.v1";
 const LS_PREFS="vortexdex.prefs.v1";
 const LS_CUSTOM="vortexdex.custom.v1";
 const LS_STAMP="vortexdex.clanstamp.v1";
+const LS_MINE="vortexdex.mine.v1";
+const LS_MISSING="vortexdex.mine.missing.v1";
 
-let manage=false,RAW=null,custom={},undoCustom=null,editing=null,iconPending=undefined,ALL=[],BYNAME=new Map(),LISTS={},owned={},prefs={region:"all",group:"all",mode:"table",map:"all",onlyMissing:false};
+let profile="clan",manage=false,RAW=null,custom={},undoCustom=null,editing=null,iconPending=undefined,ALL=[],BYNAME=new Map(),LISTS={},owned={},prefs={region:"all",group:"all",mode:"table",map:"all",onlyMissing:false};
 let storageOK=true,selected=-1,dataStamp="",undoSnapshot=null,toastTimer=0,pendingImport=null;
 
 const $=s=>document.querySelector(s);
@@ -43,9 +45,15 @@ function loadState(){
       lsSet(LS_STAMP,stamp);
     }
   }
+  profile="clan";
+  if(adminOn()&&prefs.profile==="mine"){profile="mine";owned=loadOwned("mine")}
+}
+const adminOn=()=>typeof window.isOwner==="function"&&window.isOwner();
+function loadOwned(p){
+  try{const o=JSON.parse(lsGet(p==="mine"?LS_MINE:LS_OWNED)||"{}");return o&&typeof o==="object"?o:{}}catch(e){return {}}
 }
 function persist(){
-  const ok=lsSet(LS_OWNED,JSON.stringify(owned));
+  const ok=lsSet(profile==="mine"?LS_MINE:LS_OWNED,JSON.stringify(owned));
   setSaveState(ok);
 }
 function persistCustom(){setSaveState(lsSet(LS_CUSTOM,JSON.stringify(custom)))}
@@ -134,6 +142,7 @@ function init(data){
   $("#app").dataset.ready="1";
   $("#filter").value="";
   $("#onlyMissing").checked=!!prefs.onlyMissing;
+  updateProfileUI();
   setSaveState(true);
 }
 
@@ -325,7 +334,7 @@ function setView(k){
 }
 function updateStats(){
   const t=stats(LISTS.all||[]);
-  $("#totalBar").textContent=`Total Pokédex Completion: ${Math.round(t.pct)}%  (${t.have} / ${t.total})`;
+  $("#totalBar").textContent=`${profile==="mine"?"My Pokédex":"Total Pokédex"} Completion: ${Math.round(t.pct)}%  (${t.have} / ${t.total})`;
   document.querySelectorAll("[data-rpct]").forEach(el=>{
     const l=listFor(el.dataset.rpct,prefs.group),st=stats(l);
     el.textContent=`${st.have}/${st.total}`;
@@ -573,7 +582,7 @@ function dateStamp(){
 }
 function exportData(){
   const payload=buildPayload();
-  downloadText(JSON.stringify(payload,null,1),"application/json",`vortex-clan-dex-${dateStamp()}.json`);
+  downloadText(JSON.stringify(payload,null,1),"application/json",`vortex-${profile==="mine"?"my":"clan"}-dex-${dateStamp()}.json`);
   toast(`Exported ${payload.count} Pokémon`);
 }
 function exportSite(){
@@ -621,6 +630,70 @@ function applyImport(mode){
   closeDetail();
   reindex();
   toast(mode==="replace"?"Replaced your dex":"Merged into your dex",true);
+}
+function parseMissing(text){
+  const want={},bad=[];
+  let lines=String(text).split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  if(lines.length&&/missing/i.test(lines[0])&&!BYNAME.has(lines[0]))lines.shift();
+  lines=lines.filter(l=>!/^[-=_]{3,}$/.test(l));
+  const byFold=new Map();
+  for(const r of ALL)byFold.set(r.fold,r);
+  let n=0;
+  for(const l of lines){
+    let rec=byFold.get(fold(l)),vi=0;
+    if(!rec){
+      const m=l.match(/^(Normal|Shiny|Dark|Mystic|Metallic|Shadow)\s+(.+)$/i);
+      if(m){
+        const v=VARS.findIndex(x=>x.toLowerCase()===m[1].toLowerCase());
+        const r2=byFold.get(fold(m[2]));
+        if(r2){rec=r2;vi=v}
+      }
+    }
+    if(!rec||!((rec.vmask>>vi)&1)){bad.push(l);continue}
+    want[rec.name]=(want[rec.name]||0)|(1<<vi);
+    n++;
+  }
+  return {want,bad,count:n,lines:lines.length};
+}
+function applyMissing(text){
+  const r=parseMissing(text);
+  if(!r.count)return r;
+  undoSnapshot=JSON.stringify(owned);
+  undoCustom=null;
+  const o={};
+  for(const rec of ALL){
+    const m=rec.vmask&~(r.want[rec.name]||0);
+    if(m)o[rec.name]=m;
+  }
+  owned=o;
+  lsSet(LS_MISSING,String(text));
+  persist();
+  closeDetail();
+  renderGrid();
+  return r;
+}
+function updateProfileUI(){
+  const adm=adminOn();
+  document.querySelectorAll("[data-profile]").forEach(b=>{
+    b.hidden=!adm;
+    b.setAttribute("aria-pressed",String(b.dataset.profile===profile));
+  });
+  $("#btnMissing").hidden=!(adm&&profile==="mine");
+  $("#btnSite").hidden=profile==="mine";
+}
+function setProfile(p){
+  if(p===profile||!adminOn())return;
+  persist();
+  profile=p;
+  prefs.profile=p;
+  persistPrefs();
+  owned=loadOwned(p);
+  undoSnapshot=null;
+  undoCustom=null;
+  closeDetail();
+  updateProfileUI();
+  renderGrid();
+  toast(p==="mine"?"Showing your own Pokédex":"Showing the clan Pokédex");
 }
 function toast(text,withUndo){
   $("#toastText").textContent=text;
@@ -783,6 +856,23 @@ document.addEventListener("click",e=>{
     setManage(true);
     return
   }
+  const pf=t.closest("[data-profile]");
+  if(pf){setProfile(pf.dataset.profile);return}
+  if(t.closest("#btnMissing")){
+    $("#missingText").value=lsGet(LS_MISSING)||"";
+    $("#missingInfo").textContent="";
+    $("#missingDialog").showModal();
+    return
+  }
+  if(t.closest("#missingDialog [data-act=close]")){$("#missingDialog").close();return}
+  if(t.closest("#missingDialog [data-act=apply]")){
+    const txt=$("#missingText").value;
+    if(!txt.trim()){$("#missingInfo").textContent="Paste a list first.";return}
+    const r=applyMissing(txt);
+    $("#missingInfo").innerHTML=r.count?`Marked <b>${r.count}</b> variants as missing across <b>${Object.keys(r.want).length}</b> Pokémon. Everything else is now registered.`+(r.bad.length?`<br>${r.bad.length} lines were not recognised: ${esc(r.bad.slice(0,8).join(", "))}${r.bad.length>8?"…":""}`:""):`Nothing in that list matched a Pokémon, so nothing changed.`+(r.bad.length?`<br>${esc(r.bad.slice(0,6).join(", "))}`:"");
+    if(r.count)toast("Applied your missing list",true);
+    return
+  }
   if(t.closest(".dclose")){closeDetail();return}
   if(t.closest(".dedit")){if(selected>=0&&ALL[selected])openEditor(ALL[selected]);return}
   const nm=t.closest("[data-name]");
@@ -843,6 +933,14 @@ $("#btnClear").addEventListener("click",()=>{
   toast("Cleared your dex",true);
 });
 $("#toastUndo").addEventListener("click",undo);
+$("#missingFile").addEventListener("change",e=>{
+  const f=e.target.files[0];
+  e.target.value="";
+  if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{$("#missingText").value=String(rd.result)};
+  rd.readAsText(f);
+});
 $("#fileData").addEventListener("change",e=>{
   const f=e.target.files[0];
   if(!f)return;

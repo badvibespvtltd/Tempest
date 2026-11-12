@@ -448,7 +448,9 @@ function answer(skip,why){
   }
   $("#qin").disabled=true;
   const last=run.i===run.qs.length-1;
-  $("#qfb").innerHTML=`<div class="qres ${ok?"ok":"bad"}"><b>${ok?"Correct!":(why==="time"?"Time's up.":skip?"Skipped.":"Not quite.")}</b><span>${(ms/1000).toFixed(1)}s${ok&&run.auto?" · next question…":""}${q.shown.size?" · "+q.shown.size+" letter"+(q.shown.size>1?"s":"")+" revealed":""}</span></div><div class="qform"><button class="btn" id="qnext" type="button">${last?"See results":"Next"}</button></div>`;
+  $("#qfb").innerHTML=`<div class="qres ${ok?"ok":"bad"}"><b>${ok?"Correct!":(why==="time"?"Time's up.":skip?"Skipped.":"Not quite.")}</b><span>${(ms/1000).toFixed(1)}s${ok&&run.auto?" · next question…":""}${q.shown.size?" · "+q.shown.size+" letter"+(q.shown.size>1?"s":"")+" revealed":""}</span></div><button class="btn" id="qnext" type="button">${last?"See results":"Next"}</button><button class="btn ghost" id="qquit" type="button">Quit</button>`;
+  $("#qfb").innerHTML=`<div class="qfbrow">`+$("#qfb").innerHTML+`</div>`;
+  $("#qform").style.display="none";
   showAnswer(q,ok);
   if(!ok&&window.VS)$("#qfb").insertAdjacentHTML("beforeend",VS.mix(q,skip?"":raw));
   $("#qnext").focus();
@@ -505,8 +507,9 @@ function home(){
       <button class="btn qdrillbtn" id="qdrill" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Drill (10)":"Drill (10)"}</button>
     </div>
     ${pick&&adm()?buildLine(pick):""}
+    <details class="qstatsbox"><summary>Your stats</summary>
     <table class="qtable"><thead><tr><th>Type</th><th>Items</th>${adm()?"<th>Build-up</th>":""}<th>Asked</th><th>Right</th><th>Avg time</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="qform"><button class="btn ghost small" id="qreset" type="button">Reset quiz stats</button></div>
+    <div class="qform"><button class="btn ghost small" id="qreset" type="button">Reset quiz stats</button></div></details>
     ${P.badge.length&&P.footprint.length?"":'<p class="qnote">Badge and footprint questions need <code>data/quiz-badges.js</code> and <code>data/quiz-footprints.js</code> from <code>crawl_quiz.py</code>.</p>'}
   </div>`;
 }

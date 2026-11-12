@@ -98,3 +98,6 @@ html[data-theme=dark] .qstage .ok b{color:#5fd68a}
 html[data-theme=dark] .qstage .mid b{color:#f0b84a}
 html[data-theme=dark] .qstage .bad b{color:#ff8a80}
 html[data-theme=dark] .qstage .new b{color:#b8b8c0}
+html[data-theme=dark] .pr-est{opacity:.7}
+html[data-theme=dark] .qstatsbox summary{color:#b5b5bd}
+html[data-theme=dark] .qstatsbox summary:hover{color:#ff7b72}

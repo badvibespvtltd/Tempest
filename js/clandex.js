@@ -464,10 +464,37 @@ function currentList(){
   if(prefs.onlyMissing)list=list.filter(r=>!rowComplete(r)||lineMissing(r).length>0);
   return list;
 }
+const GRID_CHUNK=120,GRID_STEP=200;
+let gridLim=GRID_CHUNK,gridKey="";
+function moreHTML(total){
+  const left=total-gridLim;
+  return left>0?`<div class="empty" id="gridMore"><button type="button" class="btn ghost small" data-gridmore>Show ${Math.min(GRID_STEP,left)} more (${left} left)</button></div>`:"";
+}
+function moreRows(){
+  const list=currentList(),from=gridLim;
+  gridLim+=GRID_STEP;
+  const b=$("#gridMore");
+  if(b){
+    b.insertAdjacentHTML("beforebegin",list.slice(from,gridLim).map(rowHTML).join(""));
+    b.outerHTML=moreHTML(list.length);
+  }
+  syncBalls();
+  syncLineBadges();
+}
+function ensureRow(idx){
+  if(rowEl(idx))return true;
+  const pos=currentList().findIndex(r=>r.idx===idx);
+  if(pos<0)return false;
+  gridLim=Math.max(gridLim,pos+1);
+  renderGrid();
+  return !!rowEl(idx);
+}
 function renderGrid(){
   const list=currentList();
+  const key=[profile,prefs.region,prefs.group,prefs.map,prefs.rar,prefs.enc,prefs.tm,prefs.onlyMissing,$("#filter").value].join("|");
+  if(key!==gridKey){gridKey=key;gridLim=GRID_CHUNK}
   const head=`<div class="hrow" role="row"><div role="columnheader">#</div><div role="columnheader"></div><div class="l" role="columnheader">Pokémon</div>${VARS.map(v=>`<div role="columnheader">${v}</div>`).join("")}</div>`;
-  $("#grid").innerHTML=head+(list.length?list.map(rowHTML).join(""):`<div class="empty">Nothing to show here.</div>`);
+  $("#grid").innerHTML=head+(list.length?list.slice(0,gridLim).map(rowHTML).join("")+moreHTML(list.length):`<div class="empty">Nothing to show here.</div>`);
   updateStats();
   if(selected>=0){
     const row=rowEl(selected);
@@ -503,6 +530,7 @@ function attachDetail(row){
   return el;
 }
 function openDetail(idx){
+  ensureRow(idx);
   let row=rowEl(idx);
   if(!row){
     prefs.region="all";
@@ -519,6 +547,7 @@ function openDetail(idx){
     renderTabs();
     applyMode();
     renderGrid();
+    ensureRow(idx);
     row=rowEl(idx);
   }
   if(!row){toast("That one is not part of the dex.");return}
@@ -848,7 +877,7 @@ async function saveEditor(){
   $("#editDialog").close();
   if(sc)sc.scrollTop=keep;
   const saved=BYNAME.get(name);
-  if(saved&&rowEl(saved.idx)){openDetail(saved.idx);toast(`Saved ${name}`)}
+  if(saved&&ensureRow(saved.idx)){openDetail(saved.idx);toast(`Saved ${name}`)}
   else toast(`Saved ${name}. It no longer matches the current filter, so it left this list.`);
 }
 function deleteEditor(){
@@ -943,6 +972,7 @@ document.addEventListener("click",e=>{
 document.addEventListener("error",e=>{if(e.target&&e.target.tagName==="IMG")e.target.style.visibility="hidden"},true);
 
 $("#filter").addEventListener("input",()=>renderGrid());
+$("#grid").addEventListener("click",e=>{if(e.target.closest("[data-gridmore]"))moreRows()});
 for(const [id,k] of [["#rarFilter","rar"],["#encFilter","enc"],["#tmFilter","tm"]])$(id).addEventListener("change",e=>{prefs[k]=e.target.value;persistPrefs();closeDetail();renderGrid()});
 $("#mapFilter").addEventListener("change",e=>{prefs.map=e.target.value;persistPrefs();closeDetail();renderGrid()});
 $("#onlyMissing").addEventListener("change",e=>{prefs.onlyMissing=e.target.checked;persistPrefs();renderGrid()});

@@ -8,7 +8,9 @@ let vc=null;
 let D=BASE,meta={exported:"",n:0},resolved=false,rendering=false;
 const undo=[];
 const GROUPS=[["Pokémon",["All Pokémon"]],["Items",["All Items"]],["Events",["Obtainable Events","Unobtainable Events"]],["Fossils",["Fossils"]],["Quiz / Exclusive",["Quiz / Exclusive"]],["Valuable",["Valuable Pokémon"]],["Avatars",["All Avatars"]],["Defaults",["Default Prices","Avatars","Exchange Rates"]]];
-const st={q:"",sec:"Events",coll:{},def:null,sort:{},edit:false,msg:""};
+const st={q:"",sec:"Events",coll:{},def:null,sort:{},lim:{},edit:false,msg:""};
+const CHUNK=100,STEP=200;
+let matchTotal=0;
 const MULT={k:1e3,m:1e6,mil:1e6,b:1e9};
 function admin(){return typeof window.isOwner==="function"&&window.isOwner()&&!!BASE}
 function ensure(){
@@ -232,6 +234,10 @@ function blockHTML(sec,b,bi,secIdx){
     const on=so&&so.col===r;
     return `<th><button type="button" class="pr-sort${on?" on":""}" data-sort="${esc(key)}" data-col="${esc(r)}">${esc(r)}${on?(so.dir>0?" ▲":" ▼"):""}</button></th>`;
   }).join("");
+  const total=items.length;
+  if(q)matchTotal+=total;
+  const lim=st.lim[key]||CHUNK;
+  if(total>lim)items=items.slice(0,lim);
   const icons=items.map(x=>iconFor(sec.name,b.title,x.it.name));
   const anyIcon=icons.some(Boolean);
   const body=items.map((x,ix)=>{
@@ -246,7 +252,7 @@ function blockHTML(sec,b,bi,secIdx){
   }).join("");
   const notes=(b.notes||[]).map(n=>`<p class="pr-note">${esc(n.replace(" | ",": "))}</p>`).join("")+(b.pokemon&&b.pokemon.length&&!q?`<div class="pr-strip"><span>Includes</span>${b.pokemon.map(n=>{const ic=iconFor("Pokémon",b.title,n);return ic?`<img class="pr-sico" alt="${esc(n)}" title="${esc(n)}" src="${esc(ic)}">`:`<span class="pr-stxt">${esc(n)}</span>`}).join("")}</div>`:"");
   const tools=st.edit&&!sec.virtual?`<span class="pr-bt"><button type="button" class="btn ghost small" data-act="aitem" data-s="${secIdx}" data-b="${bi}">Add item</button><button type="button" class="btn ghost small" data-act="eblock" data-s="${secIdx}" data-b="${bi}">Edit block</button></span>`:"";
-  return `<div class="pr-block${b.rows.length<=2?" narrow":""}"><h4><button type="button" class="pr-fold" data-act="fold" data-s="${secIdx}" data-b="${bi}" aria-expanded="${!coll}"><span class="pr-caret">${coll?"▸":"▾"}</span>${q&&sec.name!==b.title?esc(sec.name)+" · ":""}${esc(b.title)}<small>${items.length} item${items.length===1?"":"s"}</small></button>${tools}</h4>${coll?"":notes+`<div class="pr-scroll"><table class="pr-table"><thead><tr><th>Item</th>${head}</tr></thead><tbody>${body}</tbody></table></div>`}</div>`;
+  return `<div class="pr-block${b.rows.length<=2?" narrow":""}"><h4><button type="button" class="pr-fold" data-act="fold" data-s="${secIdx}" data-b="${bi}" aria-expanded="${!coll}"><span class="pr-caret">${coll?"▸":"▾"}</span>${q&&sec.name!==b.title?esc(sec.name)+" · ":""}${esc(b.title)}<small>${total} item${total===1?"":"s"}</small></button>${tools}</h4>${coll?"":notes+`<div class="pr-scroll"><table class="pr-table"><thead><tr><th>Item</th>${head}</tr></thead><tbody>${body}${total>lim?`<tr class="pr-more"><td colspan="${b.rows.length+1}"><button type="button" class="btn ghost small" data-act="more" data-s="${secIdx}" data-b="${bi}">Show ${Math.min(STEP,total-lim)} more (${total-lim} left)</button></td></tr>`:""}</tbody></table></div>`}</div>`;
 }
 function toolbar(){
   if(!admin())return "";
@@ -276,19 +282,18 @@ function render(){
     return `<button type="button" class="pr-chip" aria-pressed="${st.sec===l&&!q}" data-sec="${esc(l)}">${esc(l)} <small>${n}</small></button>`;
   }).join("");
   let html="";
-  let shown=0;
+  matchTotal=0;
   S.forEach((s,si)=>{
     if(!q&&!cur.includes(s.name))return;
     if(q&&(s.name==="Items"||s.name==="Default Prices"))return;
     const bl=s.blocks.map((b,bi)=>blockHTML(s,b,bi,si)).join("");
     if(!bl)return;
-    shown+=(bl.match(/<tr><th scope/g)||[]).length;
     html+=`<section class="pr-sec">${q?"":`<h3>${esc(s.name)}</h3>`}${!q&&s.note?`<p class="pr-note warn">${esc(s.note)}</p>`:""}${bl}</section>`;
   });
   if(!html)html=`<div class="qmsg">Nothing matches "${esc(st.q)}".</div>`;
   box.innerHTML=`
   ${toolbar()}
-  <div class="pr-tools"><input type="search" id="prSearch" placeholder="Search a Pokémon or item" aria-label="Search the pricelist" value="${esc(st.q)}"><span class="pr-count">${q?shown+" match"+(shown===1?"":"es"):""}</span><span class="pr-fa"><button type="button" class="btn ghost small" data-act="foldall" data-v="0">Expand all</button><button type="button" class="btn ghost small" data-act="foldall" data-v="1">Collapse all</button></span></div>
+  <div class="pr-tools"><input type="search" id="prSearch" placeholder="Search a Pokémon or item" aria-label="Search the pricelist" value="${esc(st.q)}"><span class="pr-count">${q?matchTotal+" match"+(matchTotal===1?"":"es"):""}</span><span class="pr-fa"><button type="button" class="btn ghost small" data-act="foldall" data-v="0">Expand all</button><button type="button" class="btn ghost small" data-act="foldall" data-v="1">Collapse all</button></span></div>
   <div class="pr-chips">${chipsHTML}</div>
   <div class="pr-key"><span>Value:</span><i class="pr-v t0">under 1m</i><i class="pr-v t1">1m+</i><i class="pr-v t2">10m+</i><i class="pr-v t3">50m+</i><i class="pr-v t4">200m+</i><i class="pr-v t1 pr-est">~ estimate</i><span class="pr-hint">Click a column heading to sort.</span></div>
   ${html}`;
@@ -463,6 +468,7 @@ function act(a){
     render();
   }
   else if(k==="foldall"){st.coll={};st.def=a.dataset.v==="1";render()}
+  else if(k==="more"){const key=s+"-"+b;st.lim[key]=(st.lim[key]||CHUNK)+STEP;render()}
   else if(k==="toggle"){st.edit=!st.edit;st.msg="";render()}
   else if(k==="undo"){
     if(!undo.length)return;
@@ -517,7 +523,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&st.edit&&e.target.matches&&e.target.matches("td.pr-ed:not(.editing)")){e.preventDefault();editCell(e.target)}
 });
 document.addEventListener("input",e=>{
-  if(e.target.id==="prSearch"){st.q=e.target.value;render()}
+  if(e.target.id==="prSearch"){st.q=e.target.value;st.lim={};render()}
 });
 window.VP={open(){render()},count(){ensure();return D?totalCount():0}};
 })();

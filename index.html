@@ -21,6 +21,7 @@
   <div class="tools">
     <span class="tools" id="dexTools" hidden>
       <span class="state" id="saveState"></span>
+      <button class="btn" id="btnMissing" type="button" hidden title="Paste the list of what you are missing; everything else gets registered">Missing list</button>
       <button class="btn" id="btnExport" type="button">Export</button>
       <button class="btn" id="btnSite" type="button" title="Makes data/clan-dex.js for publishing the website">Export site file</button>
       <button class="btn" id="btnImport" type="button">Import</button>
@@ -87,7 +88,7 @@
         <label>Encounter <select id="encFilter" aria-label="Encounter type"><option value="all">Any</option><option value="grass">🌿 Grass</option><option value="water">💧 Water</option><option value="cave">⛰️ Cave</option><option value="land">🏞️ Land</option><option value="floor">🪜 Floor</option><option value="plant">⚡ Power Plant</option></select></label>
         <label>Time <select id="tmFilter" aria-label="Day or night"><option value="all">Any</option><option value="day">☀️ Day</option><option value="night">🌙 Night</option></select></label>
         <label><input type="checkbox" id="onlyMissing"> Only incomplete</label>
-        <button type="button" class="btn ghost small" id="btnMissing" hidden>Missing list…</button><button type="button" class="btn ghost small" id="btnManage" aria-pressed="false">Manage entries: Off</button>
+        <button type="button" class="btn ghost small" id="btnManage" aria-pressed="false">Manage entries: Off</button>
       </div>
       <div class="dexbody">
         <nav class="side" id="side" aria-label="Pokédex groups"></nav>

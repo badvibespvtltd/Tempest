@@ -45,11 +45,14 @@ function stats(){
 }
 function route(){
   let v=(location.hash||"#home").slice(1);
-  if(!VIEWS.includes(v))v="home";
+  if(!VIEWS.includes(v)||(v==="dex"&&!isOwner()))v="home";
   return v;
 }
 function show(){
   const v=route();
+  const adm=isOwner();
+  $("#tileClan").hidden=!adm;
+  document.querySelector(".tiles").classList.toggle("three",!adm);
   if(v===cur)return;
   const prev=cur;
   cur=v;

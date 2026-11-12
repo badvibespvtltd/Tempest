@@ -10,7 +10,7 @@ const LS_STAMP="vortexdex.clanstamp.v1";
 const LS_MINE="vortexdex.mine.v1";
 const LS_MISSING="vortexdex.mine.missing.v1";
 
-let profile="clan",manage=false,RAW=null,custom={},undoCustom=null,editing=null,iconPending=undefined,ALL=[],BYNAME=new Map(),LISTS={},owned={},prefs={region:"all",group:"all",mode:"table",map:"all",onlyMissing:false};
+let profile="clan",manage=false,RAW=null,custom={},undoCustom=null,editing=null,iconPending=undefined,ALL=[],BYNAME=new Map(),LISTS={},owned={},prefs={region:"all",group:"all",mode:"table",map:"all",rar:"all",enc:"all",tm:"all",onlyMissing:false};
 let storageOK=true,selected=-1,dataStamp="",undoSnapshot=null,toastTimer=0,pendingImport=null;
 
 const $=s=>document.querySelector(s);
@@ -310,8 +310,15 @@ function afterNav(){
   applyMode();
   renderGrid();
 }
+function syncSpawnSel(){
+  $("#rarFilter").value=prefs.rar;
+  $("#encFilter").value=prefs.enc;
+  $("#tmFilter").value=prefs.tm;
+}
 function goToMap(m){
   prefs.map=m;
+  prefs.rar=prefs.enc=prefs.tm="all";
+  syncSpawnSel();
   prefs.region="all";
   prefs.group="all";
   $("#filter").value="";
@@ -329,7 +336,8 @@ function setView(k){
   if(k.startsWith("region:")){prefs.region=k.slice(7);prefs.group="all"}
   else{prefs.group=k;prefs.region="all"}
   prefs.map="all";
-  $("#mapFilter").value="all";
+  prefs.rar=prefs.enc=prefs.tm="all";
+  syncSpawnSel();
   afterNav();
 }
 function updateStats(){
@@ -348,13 +356,13 @@ function updateStats(){
     el.closest(".sidebtn").classList.toggle("dim",!l.length);
   });
   const rb=$("#regionBar");
-  rb.hidden=$("#filter").value.trim()===""&&prefs.region==="all"&&prefs.group==="all"&&prefs.map==="all";
+  rb.hidden=$("#filter").value.trim()===""&&prefs.region==="all"&&prefs.group==="all"&&!mapActive();
   if($("#filter").value.trim()!==""){
-    $("#regionBar").textContent=prefs.map==="all"?"Search results from every region and group":`Search results on ${mapLabel()}`;
+    $("#regionBar").textContent=!mapActive()?"Search results from every region and group":`Search results on ${mapLabel()}`;
   }else{
     const base=listFor(prefs.region,prefs.group);
-    const s=stats(prefs.map==="all"?base:base.filter(onMap));
-    const name=[regionLabel(prefs.region)].concat(prefs.group==="all"?[]:[groupLabel(prefs.group)],prefs.map==="all"?[]:[mapLabel()]).join(" · ");
+    const s=stats(!mapActive()?base:base.filter(onMap));
+    const name=[regionLabel(prefs.region)].concat(prefs.group==="all"?[]:[groupLabel(prefs.group)],!mapActive()?[]:[mapLabel()]).join(" · ");
     $("#regionBar").textContent=`${name} Completion: ${Math.round(s.pct)}%  (${s.have} / ${s.total})`;
   }
   if(prefs.mode==="overview")renderOverview();
@@ -413,23 +421,46 @@ function buildMaps(){
     if(l.kind==="map")for(const m of l.maps||[])set.add(m);
   }
   MAPS=[...set].sort(natural);
+  const cat={};
+  for(const r of ALL)for(const sp of r.spawns||[])if(sp.cat&&!cat[sp.map])cat[sp.map]=sp.cat;
   if(prefs.map!=="all"&&prefs.map!=="@roaming"&&prefs.map!=="@rotm"&&!set.has(prefs.map))prefs.map="all";
   const sel=$("#mapFilter");
-  sel.innerHTML=`<option value="all">All maps</option>`+MAPS.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("")+`<option value="@roaming">Roaming (changes hourly)</option><option value="@rotm">Roamer of the Month</option>`;
+  const opt=m=>`<option value="${esc(m)}">${esc(m)}</option>`;
+  const groups=["Routes","Caves/Indoor Areas","Towns/Outdoor Areas"];
+  const grouped=groups.map(g=>{const ms=MAPS.filter(m=>cat[m]===g);return ms.length?`<optgroup label="${g}">${ms.map(opt).join("")}</optgroup>`:""}).join("");
+  const rest=MAPS.filter(m=>!groups.includes(cat[m]));
+  sel.innerHTML=`<option value="all">All maps</option>`+grouped+(rest.length?(grouped?`<optgroup label="Other">`:"")+rest.map(opt).join("")+(grouped?`</optgroup>`:""):"")+`<option value="@roaming">Roaming (changes hourly)</option><option value="@rotm">Roamer of the Month</option>`;
   sel.value=prefs.map;
+  if(!(prefs.rar in RARLAB))prefs.rar="all";
+  if(!(prefs.enc in ENCLAB))prefs.enc="all";
+  if(prefs.tm!=="day"&&prefs.tm!=="night")prefs.tm="all";
+  syncSpawnSel();
+}
+const PLANT=m=>/power plant/i.test(m);
+const spawnFiltered=()=>prefs.rar!=="all"||prefs.enc!=="all"||prefs.tm!=="all";
+function spawnOK(r){
+  const m=prefs.map;
+  return (r.spawns||[]).some(s=>(m==="all"||s.map===m)&&(prefs.rar==="all"||s.rarity===prefs.rar)&&(prefs.tm==="all"||s.time===prefs.tm)&&(prefs.enc==="all"||(prefs.enc==="plant"?PLANT(s.map):(s.method||[]).includes(prefs.enc))));
 }
 function onMap(r){
   const v=prefs.map,l=r.location||{};
+  if(spawnFiltered()&&v!=="@roaming"&&v!=="@rotm")return spawnOK(r);
   if(v==="all")return true;
   if(v==="@roaming")return l.kind==="roaming";
   if(v==="@rotm")return l.kind==="rotm";
   return l.kind==="map"&&(l.maps||[]).includes(v);
 }
-const mapLabel=()=>prefs.map==="@roaming"?"Roaming":prefs.map==="@rotm"?"Roamer of the Month":prefs.map;
+const RARLAB={common:"Common",rare:"Rare",legendary:"Legendary","ultra beast":"Ultra Beast",paradox:"Paradox"};
+const ENCLAB={grass:"Grass",water:"Water",cave:"Cave",land:"Land",floor:"Floor",plant:"Power Plant"};
+const RARICO={common:"⚪",rare:"⭐",legendary:"👑","ultra beast":"🌀",paradox:"⏳"};
+const ENCICO={grass:"🌿",water:"💧",cave:"⛰️",land:"🏞️",floor:"🪜",plant:"⚡"};
+const TMICO={day:"☀️",night:"🌙"};
+const mapLabel=()=>prefs.map==="@roaming"?"Roaming":prefs.map==="@rotm"?"Roamer of the Month":[prefs.map==="all"?"":prefs.map,prefs.rar==="all"?"":RARLAB[prefs.rar],prefs.enc==="all"?"":ENCLAB[prefs.enc],prefs.tm==="all"?"":prefs.tm==="day"?"Day":"Night"].filter(Boolean).join(" · ");
+const mapActive=()=>prefs.map!=="all"||spawnFiltered();
 function currentList(){
   const q=fold($("#filter").value);
   let list=q?(LISTS.all||[]).filter(r=>r.fold.includes(q)):listFor(prefs.region,prefs.group);
-  if(prefs.map!=="all")list=list.filter(onMap);
+  if(mapActive())list=list.filter(onMap);
   if(prefs.onlyMissing)list=list.filter(r=>!rowComplete(r)||lineMissing(r).length>0);
   return list;
 }
@@ -478,6 +509,8 @@ function openDetail(idx){
     prefs.group="all";
     prefs.onlyMissing=false;
     prefs.map="all";
+    prefs.rar=prefs.enc=prefs.tm="all";
+    syncSpawnSel();
     $("#mapFilter").value="all";
     $("#onlyMissing").checked=false;
     $("#filter").value="";
@@ -525,6 +558,21 @@ function whereHTML(rec){
     parts.push(`<div>${esc(loc.text)}</div>`);
   }else{
     parts.push(`<div><b>No map listed</b> on the wiki for this one.</div>`);
+  }
+  const sp=rec.spawns||[];
+  if(sp.length){
+    const by=new Map();
+    for(const x of sp){
+      const k=x.map+"|"+x.rarity+"|"+(x.method||[]).join("/");
+      if(!by.has(k))by.set(k,{map:x.map,rar:x.rarity,m:(x.method||[]).join("/"),t:new Set()});
+      if(x.time)by.get(k).t.add(x.time);
+    }
+    const rows=[...by.values()].map(v=>{
+      const enc=v.m.split("/").map(m=>`<span class="sp-chip" title="${esc(ENCLAB[m]||m)}">${ENCICO[m]||""} ${esc(ENCLAB[m]||m)}</span>`).join("");
+      const tm=[...v.t].sort().map(t=>`<span class="sp-chip" title="${t==="day"?"Day":"Night"}">${TMICO[t]}</span>`).join("");
+      return `<div class="sprow"><span class="sp-map">${esc(v.map)}</span><span class="sp-chip sp-${v.rar.replace(" ","")}" title="${esc(RARLAB[v.rar]||v.rar)}">${RARICO[v.rar]||""} ${esc(RARLAB[v.rar]||v.rar)}</span>${enc}${tm}</div>`;
+    });
+    parts.push(`<div class="spawnline"><b>Spawns:</b>${rows.join("")}</div>`);
   }
   return parts.join("");
 }
@@ -895,6 +943,7 @@ document.addEventListener("click",e=>{
 document.addEventListener("error",e=>{if(e.target&&e.target.tagName==="IMG")e.target.style.visibility="hidden"},true);
 
 $("#filter").addEventListener("input",()=>renderGrid());
+for(const [id,k] of [["#rarFilter","rar"],["#encFilter","enc"],["#tmFilter","tm"]])$(id).addEventListener("change",e=>{prefs[k]=e.target.value;persistPrefs();closeDetail();renderGrid()});
 $("#mapFilter").addEventListener("change",e=>{prefs.map=e.target.value;persistPrefs();closeDetail();renderGrid()});
 $("#onlyMissing").addEventListener("change",e=>{prefs.onlyMissing=e.target.checked;persistPrefs();renderGrid()});
 document.addEventListener("keydown",e=>{

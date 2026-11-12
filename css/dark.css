@@ -101,3 +101,9 @@ html[data-theme=dark] .qstage .new b{color:#b8b8c0}
 html[data-theme=dark] .pr-est{opacity:.7}
 html[data-theme=dark] .qstatsbox summary{color:#b5b5bd}
 html[data-theme=dark] .qstatsbox summary:hover{color:#ff7b72}
+html[data-theme=dark] .sp-chip{background:#3a3a3a;color:#eee}
+html[data-theme=dark] 
+.sp-rare{background:#6b5a1c}
+html[data-theme=dark] .sp-legendary{background:#5b2f6b}
+html[data-theme=dark] .sp-ultrabeast{background:#1f4a68}
+html[data-theme=dark] .sp-paradox{background:#6b3228}

@@ -428,3 +428,8 @@ kbd{font:600 10px/1 ui-monospace,Menlo,Consolas,monospace;border:1px solid curre
 .qstatsbox summary{cursor:pointer;text-align:center;font-weight:600;font-size:13px;color:#555;padding:6px}
 .qstatsbox summary:hover{color:#a30000}
 @media(min-width:1260px){.qwrap{position:relative}#qfb .vs-mix{position:absolute;left:calc(50% + 356px);top:56px;width:min(310px,calc(50% - 372px));margin:0;text-align:left}}
+.spawnline{margin-top:6px}
+.sprow{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:3px 0}
+.sp-map{font-weight:600;margin-right:4px}
+.sp-chip{display:inline-block;padding:1px 7px;border-radius:10px;background:#e4e4e4;font-size:.85em;white-space:nowrap}
+.sp-rare{background:#ffe9a8}.sp-legendary{background:#f5d0ff}.sp-ultrabeast{background:#c9e8ff}.sp-paradox{background:#ffd0c9}

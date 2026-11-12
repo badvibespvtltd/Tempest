@@ -69,6 +69,9 @@
       <div class="filters">
         <input type="search" id="filter" placeholder="Search for a Pokémon" aria-label="Search the Pokédex">
         <label>Map <select id="mapFilter" aria-label="Show only Pokémon found on this map"></select></label>
+        <label>Rarity <select id="rarFilter" aria-label="Spawn rarity"><option value="all">Any</option><option value="common">⚪ Common</option><option value="rare">⭐ Rare</option><option value="legendary">👑 Legendary</option><option value="ultra beast">🌀 Ultra Beast</option><option value="paradox">⏳ Paradox</option></select></label>
+        <label>Encounter <select id="encFilter" aria-label="Encounter type"><option value="all">Any</option><option value="grass">🌿 Grass</option><option value="water">💧 Water</option><option value="cave">⛰️ Cave</option><option value="land">🏞️ Land</option><option value="floor">🪜 Floor</option><option value="plant">⚡ Power Plant</option></select></label>
+        <label>Time <select id="tmFilter" aria-label="Day or night"><option value="all">Any</option><option value="day">☀️ Day</option><option value="night">🌙 Night</option></select></label>
         <label><input type="checkbox" id="onlyMissing"> Only incomplete</label>
         <button type="button" class="btn ghost small" id="btnMissing" hidden>Missing list…</button><button type="button" class="btn ghost small" id="btnManage" aria-pressed="false">Manage entries: Off</button>
       </div>

@@ -24,6 +24,7 @@ function ensure(){
     D=o.data;meta={exported:o.exported||"",n:o.n||0};
     if(!D.shop&&BASE.shop)D.shop=JSON.parse(JSON.stringify(BASE.shop));
     if(!D.auto&&BASE.auto)D.auto=JSON.parse(JSON.stringify(BASE.auto));
+    if(BASE.rares){D.rares=BASE.rares.slice();D.rp=JSON.parse(JSON.stringify(BASE.rp||{}))}
     const dp=BASE.sections.find(x=>x.name==="Default Prices");
     if(dp&&!D.sections.some(x=>x.name==="Default Prices"))D.sections.push(JSON.parse(JSON.stringify(dp)));
   }
@@ -108,7 +109,7 @@ function cell(e){
   const tier=e.hi>=2e8?4:e.hi>=5e7?3:e.hi>=1e7?2:e.hi>=1e6?1:0;
   return `<td class="pr-v t${tier}${e.est?" pr-est":""}" title="${esc(e.est?"Estimate: "+e.t:e.t)}">${txt}</td>`;
 }
-const VCLS=["Regular","Starter","Premium","Legendary","Mega","Gmax","Fossil","Event","Special","Paradox","Ultra Beast","Side"];
+const VCLS=["Regular","Rares","Starter","Premium","Legendary","Mega","Gmax","Fossil","Event","Special","Paradox","Ultra Beast","Side"];
 const VVAR=["Normal","Dark","Metallic","Mystic","Shadow","Shiny"];
 const NOPK=["Exchange Rates","Items","Avatars","Default Prices"];
 const ik=n=>fold(String(n).replace(/\s*\(.*?\)\s*$/,"").replace(/^\d+x\s+/i,"")).replace(/s$/,"");
@@ -137,23 +138,31 @@ function virtMon(df){
   const ov=D.overrides||{};
   const P=(window.VORTEX_DATA&&window.VORTEX_DATA.pokemon)||{};
   const by={};
-  Object.values(P).forEach(r=>{const c=!r.class||r.class==="N/A"?"Regular":r.class;(by[c]=by[c]||[]).push(r)});
+  const RR=new Set(D.rares||[]);
+  Object.values(P).forEach(r=>{let c=!r.class||r.class==="N/A"?"Regular":r.class;if(c==="Regular"&&RR.has(r.name))c="Rares";(by[c]=by[c]||[]).push(r)});
   const blocks=VCLS.concat(Object.keys(by).filter(c=>!VCLS.includes(c))).filter(c=>by[c]).map(c=>{
     const rows=by[c].slice().sort((a,b)=>String(a.dex).localeCompare(String(b.dex))||a.name.localeCompare(b.name));
+    const cls=c==="Rares"?"Regular":c;
     return {title:c,rows:VVAR,items:rows.map(r=>{
       const locs=idx.get(fold(r.name))||[];
       const key="mon:"+r.name,o=ov[key]||{};
       const prices={},vloc={};
       VVAR.forEach(v=>{
-        if(v!=="Normal"&&r.variants&&r.variants.length&&!r.variants.includes(v))return;
-        let e=null;
+        const vl=r.variants&&r.variants.length?r.variants:(cls==="Side"?["Normal"]:null);
+        if(v!=="Normal"&&vl&&!vl.includes(v))return;
+        let e=null,tbc=null;
         for(const l of locs){
           const x=D.sections[l[0]].blocks[l[1]].items[l[2]].prices[v];
           if(priced(x)){e=x;vloc[v]=l;break}
+          if(x&&!tbc)tbc=x;
         }
         if(!e&&o[v])e=o[v];
-        if(!e&&c==="Regular"&&D.auto&&D.auto[r.name]!=null){const a=D.auto[r.name];e={t:fmt(a)+" pds",lo:a,hi:a,est:1}}
-        if(!e&&df.mon[c]&&df.mon[c][v])e=df.mon[c][v];
+        if(!e&&tbc)e=tbc;
+        if(!e&&cls==="Side")e={t:"TBC"};
+        if(!e&&c==="Rares"&&D.rp&&D.rp[v]){const [lo,hi]=D.rp[v];e={t:fmt(lo)+"-"+fmt(hi)+" pds",lo,hi,est:1}}
+        if(!e&&cls==="Regular"&&D.auto&&D.auto[r.name]!=null){const a=D.auto[r.name];e={t:fmt(a)+" pds",lo:a,hi:a,est:1}}
+        if(!e&&cls==="Starter"&&v!=="Normal"&&(r.types||[]).some(t=>String(t).toLowerCase()==="fire")){const FS={Dark:[300000,500000],Metallic:[300000,500000],Mystic:[300000,500000],Shadow:[1000000,1500000],Shiny:[2000000,3000000]}[v];const k=n=>n>=1000000?(n/1000000)+"m":(n/1000)+"k";e={t:k(FS[0])+"-"+k(FS[1])+" pds",lo:FS[0],hi:FS[1],est:1}}
+        if(!e&&df.mon[cls]&&df.mon[cls][v])e=df.mon[cls][v];
         if(e)prices[v]=e;
       });
       return {name:r.name,prices,vkey:key,vloc,hasCur:locs.length>0};

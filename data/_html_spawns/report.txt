@@ -1,0 +1,17 @@
+spawn rows: 1294 for 650 Pokémon on 38 maps
+with rarity: 1292, with method: 0, with time: 0, with level: 0
+rarity: {"common": 650}
+method: {}
+time: {}
+
+column headers seen:
+  text: 2
+
+section names seen:
+  Common: 1292
+  (none): 2
+
+sections where nothing was classified:
+  (none): 2
+
+maps with no rows: 

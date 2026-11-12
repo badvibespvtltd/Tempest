@@ -527,3 +527,6 @@ html:is([data-page=dex],[data-page=mydex])[data-theme=dark]:not([data-fx=off]) #
 .herob img{position:absolute;top:0;left:50%;height:100%;width:auto;aspect-ratio:2/1;transform:translateX(-50%);object-fit:cover;object-position:50% 44%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
 .herob:after{content:"";position:absolute;inset:auto 0 0 0;height:38%;background:linear-gradient(transparent,color-mix(in srgb,var(--page) 85%,transparent));z-index:1;pointer-events:none}
 @media(max-width:700px){.herob{height:150px}.herob img{width:100%;aspect-ratio:auto;transform:translateX(-50%) scale(1.15)}}
+
+.hub{padding-top:28px}
+@media(max-width:560px){.top h1{font-size:16px}.crumb{margin-left:8px;font-size:13px}}

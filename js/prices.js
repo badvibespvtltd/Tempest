@@ -7,7 +7,7 @@ const KEY="vortexdex.pricelist.v1";
 let vc=null;
 let D=BASE,meta={exported:"",n:0},resolved=false,rendering=false;
 const undo=[];
-const GROUPS=[["Pokémon",["All Pokémon"]],["Items",["All Items"]],["Events",["Obtainable Events","Unobtainable Events"]],["Fossils",["Fossils"]],["Quiz / Exclusive",["Quiz / Exclusive"]],["Valuable",["Valuable Pokémon"]],["Exchange & Avatars",["Exchange Rates","Avatars"]],["Defaults",["Default Prices"]]];
+const GROUPS=[["Pokémon",["All Pokémon"]],["Items",["All Items"]],["Events",["Obtainable Events","Unobtainable Events"]],["Fossils",["Fossils"]],["Quiz / Exclusive",["Quiz / Exclusive"]],["Valuable",["Valuable Pokémon"]],["Avatars",["All Avatars"]],["Defaults",["Default Prices","Avatars","Exchange Rates"]]];
 const st={q:"",sec:"Events",coll:{},def:null,sort:{},edit:false,msg:""};
 const MULT={k:1e3,m:1e6,mil:1e6,b:1e9};
 function admin(){return typeof window.isOwner==="function"&&window.isOwner()&&!!BASE}
@@ -23,10 +23,9 @@ function ensure(){
   if((o.n>0)||String(o.data.generated)>String(BASE.generated)){
     D=o.data;meta={exported:o.exported||"",n:o.n||0};
     if(!D.shop&&BASE.shop)D.shop=JSON.parse(JSON.stringify(BASE.shop));
-    if(!D.auto&&BASE.auto)D.auto=JSON.parse(JSON.stringify(BASE.auto));
-    if(BASE.rares){D.rares=BASE.rares.slice();D.rp=JSON.parse(JSON.stringify(BASE.rp||{}))}
-    const dp=BASE.sections.find(x=>x.name==="Default Prices");
-    if(dp&&!D.sections.some(x=>x.name==="Default Prices"))D.sections.push(JSON.parse(JSON.stringify(dp)));
+    BASE.sections.forEach(x=>{
+      if((x.name==="Default Prices"||x.name==="All Pokémon"||x.name==="All Items")&&!D.sections.some(y=>y.name===x.name))D.sections.push(JSON.parse(JSON.stringify(x)));
+    });
   }
   else{try{localStorage.removeItem(KEY)}catch(e){}}
 }
@@ -41,7 +40,7 @@ function mutate(fn,msg){
   fn();
   if(JSON.stringify(D)===before){D=prev;return false}
   undo.push(before);
-  if(undo.length>40)undo.shift();
+  if(undo.length>15)undo.shift();
   meta.n++;
   st.msg=msg||"";
   persist();
@@ -80,8 +79,26 @@ function maps(){
   Object.values(P).forEach(r=>{if(r.iconData||r.icon_file)pmap.set(fold(r.name),r)});
   (window.VORTEX_QUIZ_ITEMS||[]).forEach(x=>imap.set(fold(x.name),x.file));
 }
+const avmap=new Map((window.VORTEX_AVATARS||[]).map(a=>[a.name,a]));
+function virtAv(){
+  const list=window.VORTEX_AVATARS||[];
+  if(!list.length)return null;
+  const ov=D.overrides||{};
+  const regs=[...new Set(list.map(a=>a.region))];
+  const blocks=regs.map(rg=>({title:rg,rows:["Value","Unlock"],noedit:["Unlock"],items:list.filter(a=>a.region===rg).map(a=>{
+    const key="av:"+a.name+"|"+a.region;
+    const prices={};
+    let e=ov[key]&&ov[key].Value;
+    if(!e)e={t:"TBC"};
+    if(e)prices.Value=e;
+    prices.Unlock={t:a.unlock,raw:1};
+    return {name:a.name,prices,vkey:key,vloc:{},hasCur:false};
+  })}));
+  return {name:"All Avatars",virtual:1,note:"Every avatar on the wiki. Prices are TBC until you fill them in. Click Manage to edit any of them.",blocks};
+}
 function iconFor(sec,title,name){
   if(sec==="Avatars"||sec==="Exchange Rates")return "";
+  if(sec==="All Avatars"){const a=avmap.get(name);return a&&a.file?"data/avatars/"+encodeURIComponent(a.file):""}
   if(!pmap)maps();
   const n=ALIAS[name]||name;
   if(sec==="Items"||sec==="All Items"||title==="Fossil"){
@@ -109,115 +126,87 @@ function cell(e){
   const tier=e.hi>=2e8?4:e.hi>=5e7?3:e.hi>=1e7?2:e.hi>=1e6?1:0;
   return `<td class="pr-v t${tier}${e.est?" pr-est":""}" title="${esc(e.est?"Estimate: "+e.t:e.t)}">${txt}</td>`;
 }
-const VCLS=["Regular","Rares","Starter","Premium","Legendary","Mega","Gmax","Fossil","Event","Special","Paradox","Ultra Beast","Side"];
-const VVAR=["Normal","Dark","Metallic","Mystic","Shadow","Shiny"];
-const NOPK=["Exchange Rates","Items","Avatars","Default Prices"];
+const NOPK=["Exchange Rates","Items","Avatars","Default Prices","All Pokémon","All Items"];
 const ik=n=>fold(String(n).replace(/\s*\(.*?\)\s*$/,"").replace(/^\d+x\s+/i,"")).replace(/s$/,"");
-function defs(){
-  const s=D.sections.find(x=>x.name==="Default Prices");
-  if(!s)return null;
-  const o={mon:{},item:{}};
-  if(s.blocks[0])s.blocks[0].items.forEach(i=>{o.mon[i.name]=i.prices});
-  if(s.blocks[1])s.blocks[1].items.forEach(i=>{o.item[i.name]=i.prices});
-  return o;
-}
 function priced(e){return !!e&&(e.lo!=null||!!e.raw)}
-function virtMon(df){
-  const idx=new Map();
-  D.sections.forEach((sec,si)=>{
-    if(NOPK.includes(sec.name))return;
-    sec.blocks.forEach((b,bi)=>{
-      if(b.title==="Fossil")return;
-      b.items.forEach((it,ii)=>{
-        const k=fold(ALIAS[it.name]||it.name);
-        if(!idx.has(k))idx.set(k,[]);
-        idx.get(k).push([si,bi,ii]);
+function monKey(n){return fold(ALIAS[n]||n)}
+function itemKey(sec,b,n){
+  if(sec.name==="All Items")return ik(n);
+  if(sec.name==="Items")return ik(n);
+  if(sec.name==="Fossils"&&b.title==="Fossil")return ik(!/fossil/i.test(n)&&n!=="Old Amber"?n+" Fossil":n);
+  return null;
+}
+function domain(sec,b){
+  if(sec.name==="All Pokémon")return "mon";
+  if(sec.name==="All Items"||sec.name==="Items")return "item";
+  if(sec.name==="Fossils"&&b.title==="Fossil")return "item";
+  if(NOPK.includes(sec.name)||b.title==="Fossil")return null;
+  return "mon";
+}
+function linked(s,b,i){
+  const sec=D.sections[s],blk=sec.blocks[b],it=blk.items[i],dom=domain(sec,blk);
+  if(!dom)return [];
+  const key=dom==="mon"?monKey(it.name):itemKey(sec,blk,it.name);
+  const out=[];
+  D.sections.forEach((sc,si)=>{
+    sc.blocks.forEach((bl,bi)=>{
+      if(domain(sc,bl)!==dom)return;
+      bl.items.forEach((x,xi)=>{
+        if(si===s&&bi===b&&xi===i)return;
+        const k=dom==="mon"?monKey(x.name):itemKey(sc,bl,x.name);
+        if(k===key)out.push([si,bi,xi]);
       });
     });
   });
-  const ov=D.overrides||{};
-  const P=(window.VORTEX_DATA&&window.VORTEX_DATA.pokemon)||{};
-  const by={};
-  const RR=new Set(D.rares||[]);
-  Object.values(P).forEach(r=>{let c=!r.class||r.class==="N/A"?"Regular":r.class;if(c==="Regular"&&RR.has(r.name))c="Rares";(by[c]=by[c]||[]).push(r)});
-  const blocks=VCLS.concat(Object.keys(by).filter(c=>!VCLS.includes(c))).filter(c=>by[c]).map(c=>{
-    const rows=by[c].slice().sort((a,b)=>String(a.dex).localeCompare(String(b.dex))||a.name.localeCompare(b.name));
-    const cls=c==="Rares"?"Regular":c;
-    return {title:c,rows:VVAR,items:rows.map(r=>{
-      const locs=idx.get(fold(r.name))||[];
-      const key="mon:"+r.name,o=ov[key]||{};
-      const prices={},vloc={};
-      VVAR.forEach(v=>{
-        const vl=r.variants&&r.variants.length?r.variants:(cls==="Side"?["Normal"]:null);
-        if(v!=="Normal"&&vl&&!vl.includes(v))return;
-        let e=null,tbc=null;
-        for(const l of locs){
-          const x=D.sections[l[0]].blocks[l[1]].items[l[2]].prices[v];
-          if(priced(x)){e=x;vloc[v]=l;break}
-          if(x&&!tbc)tbc=x;
-        }
-        if(!e&&o[v])e=o[v];
-        if(!e&&tbc)e=tbc;
-        if(!e&&cls==="Side")e={t:"TBC"};
-        if(!e&&c==="Rares"&&D.rp&&D.rp[v]){const [lo,hi]=D.rp[v];e={t:fmt(lo)+"-"+fmt(hi)+" pds",lo,hi,est:1}}
-        if(!e&&cls==="Regular"&&D.auto&&D.auto[r.name]!=null){const a=D.auto[r.name];e={t:fmt(a)+" pds",lo:a,hi:a,est:1}}
-        if(!e&&cls==="Starter"&&v!=="Normal"&&(r.types||[]).some(t=>String(t).toLowerCase()==="fire")){const FS={Dark:[300000,500000],Metallic:[300000,500000],Mystic:[300000,500000],Shadow:[1000000,1500000],Shiny:[2000000,3000000]}[v];const k=n=>n>=1000000?(n/1000000)+"m":(n/1000)+"k";e={t:k(FS[0])+"-"+k(FS[1])+" pds",lo:FS[0],hi:FS[1],est:1}}
-        if(!e&&df.mon[cls]&&df.mon[cls][v])e=df.mon[cls][v];
-        if(e)prices[v]=e;
-      });
-      return {name:r.name,prices,vkey:key,vloc,hasCur:locs.length>0};
-    })};
-  });
-  return {name:"All Pokémon",virtual:1,note:"Every Pokémon in the game. A leading ~ marks an estimate from the Default Prices; anything else comes from the sheet.",blocks};
+  return out;
+}
+const isBaked=sec=>sec.name==="All Pokémon"||sec.name==="All Items";
+function colMap(sec,bl,c){
+  if(sec.name==="Items"||sec.name==="Fossils")return c===bl.rows[0]?"Value":null;
+  return c;
+}
+function colBack(sec,bl,c){
+  if(sec.name==="Items"||sec.name==="Fossils")return c==="Value"?bl.rows[0]:null;
+  return c;
+}
+function syncPrice(s,b,i,c,e){
+  const sec=D.sections[s],blk=sec.blocks[b];
+  const baked=isBaked(sec);
+  const col=baked?c:colMap(sec,blk,c);
+  if(!col)return;
+  const ls=linked(s,b,i);
+  if(baked){
+    for(const [si,bi,xi] of ls){
+      const sc=D.sections[si],bl=sc.blocks[bi];
+      if(isBaked(sc))continue;
+      const cc=colBack(sc,bl,col);
+      if(!cc)continue;
+      const t=bl.items[xi].prices;
+      if(!priced(t[cc]))continue;
+      if(e)t[cc]=JSON.parse(JSON.stringify(e));else delete t[cc];
+      break;
+    }
+  }
+  else{
+    for(const [si,bi,xi] of ls){
+      const sc=D.sections[si];
+      if(!isBaked(sc))continue;
+      const t=sc.blocks[bi].items[xi].prices;
+      if(e)t[col]=JSON.parse(JSON.stringify(e));else delete t[col];
+    }
+  }
 }
 function shopKey(n){
   const sh=D.shop||{};
   const k=fold(n);
   return Object.keys(sh).find(x=>fold(x)===k)||n;
 }
-function virtItem(df){
-  const idx=new Map();
-  D.sections.forEach((sec,si)=>{
-    sec.blocks.forEach((b,bi)=>{
-      const fos=sec.name==="Fossils"&&b.title==="Fossil";
-      if(sec.name!=="Items"&&!fos)return;
-      b.items.forEach((it,ii)=>{
-        let k=ik(it.name);
-        if(fos&&!/fossil/i.test(it.name)&&it.name!=="Old Amber")k=ik(it.name+" Fossil");
-        if(!idx.has(k))idx.set(k,[si,bi,ii]);
-      });
-    });
-  });
-  const ov=D.overrides||{},shop=D.shop||{};
-  const sf=new Map(Object.keys(shop).map(n=>[fold(n),shop[n]]));
-  const by={};
-  (window.VORTEX_QUIZ_ITEMS||[]).forEach(x=>{(by[x.category]=by[x.category]||[]).push(x.name)});
-  const mk=(v,est)=>{const o={t:fmt(v)+" pds",lo:v,hi:v};if(est)o.est=1;return o};
-  const blocks=Object.keys(by).map(cat=>({title:cat,rows:["Value","PokéMart"],items:by[cat].map(n=>{
-    const key="item:"+n,l=idx.get(ik(n));
-    const sp=sf.get(fold(n));
-    const prices={},vloc={};
-    let e=null;
-    if(l){
-      const b=D.sections[l[0]].blocks[l[1]],x=b.items[l[2]].prices[b.rows[0]];
-      if(priced(x)){e=x;vloc.Value=l}
-    }
-    if(!e&&ov[key]&&ov[key].Value)e=ov[key].Value;
-    if(!e&&sp)e=mk(sp,1);
-    if(!e&&df.item[cat]&&df.item[cat].Value)e=df.item[cat].Value;
-    if(e)prices.Value=e;
-    if(sp)prices["PokéMart"]=mk(sp);
-    else if(cat!=="Battle Items")prices["PokéMart"]={t:"Cannot be bought",raw:1};
-    return {name:n,prices,vkey:key,vloc,hasCur:!!l};
-  })}));
-  return {name:"All Items",virtual:1,note:"Every item in the quiz. Value is the sheet price when there is one, otherwise the PokéMart price, otherwise the Default Prices estimate (marked ~).",blocks};
-}
 function sections(){
   if(!D)return [];
   if(vc&&vc.d===D)return vc.s;
-  const df=defs();
   const s=D.sections.slice();
-  if(df){s.push(virtMon(df));s.push(virtItem(df))}
+  const av=virtAv();
+  if(av)s.push(av);
   vc={d:D,s};
   return s;
 }
@@ -310,17 +299,22 @@ function render(){
   if(q){const i=$("#prSearch");i.focus();i.setSelectionRange(i.value.length,i.value.length)}
 }
 
+function fmtPd(v){return fmt(v)+" pds"}
 function setPrice(s,b,i,c,raw){
   const text=raw.replace(/\s+/g," ").trim();
-  if(sections()[s].virtual){setVirtual(s,b,i,c,raw);return}
-  const it=D.sections[s].blocks[b].items[i];
+  if(s>=D.sections.length){setAvatar(s,b,i,c,raw);return}
+  const sec=D.sections[s];
+  const it=sec.blocks[b].items[i];
   const old=it.prices[c];
+  if(sec.name==="All Items"&&c==="PokéMart"){setMart(s,b,i,text);return}
   if(!text&&!old)return;
   if(old&&old.t===text)return;
+  const baked=isBaked(sec);
   mutate(()=>{
     const t=D.sections[s].blocks[b].items[i];
-    if(!text){delete t.prices[c];return}
-    t.prices[c]=entryFor(text,t.prices[c]);
+    if(!text){delete t.prices[c];syncPrice(s,b,i,c,null);return}
+    t.prices[c]=baked?entryFor(text,old&&old.raw?{raw:1}:null):entryFor(text,t.prices[c]);
+    syncPrice(s,b,i,c,t.prices[c]);
   },text?`Saved ${it.name} · ${c}`:`Cleared ${it.name} · ${c}`);
 }
 function entryFor(text,old){
@@ -330,31 +324,32 @@ function entryFor(text,old){
   if(old&&old.est)e.est=1;
   return e;
 }
-function setVirtual(s,b,i,c,raw){
+function setMart(s,b,i,text){
+  const blk=D.sections[s].blocks[b],it=blk.items[i],nm=it.name,k=shopKey(nm);
+  const p=text?parsePrice(text):null;
+  const cur=D.shop&&D.shop[k];
+  if(p){if(cur===p.hi)return}
+  else if(cur==null&&!(it.prices["PokéMart"]&&!it.prices["PokéMart"].raw))return;
+  mutate(()=>{
+    const t=D.sections[s].blocks[b].items[i];
+    D.shop=D.shop||{};
+    if(p){
+      D.shop[k]=p.hi;
+      t.prices["PokéMart"]={t:fmtPd(p.hi),lo:p.hi,hi:p.hi};
+      const v=t.prices.Value;
+      if(!v||(v.est&&v.src==="shop"))t.prices.Value={t:fmtPd(p.hi),lo:p.hi,hi:p.hi,est:1,src:"shop"};
+    }
+    else{
+      delete D.shop[k];
+      if(blk.title==="Battle Items")delete t.prices["PokéMart"];
+      else t.prices["PokéMart"]={t:"Cannot be bought",raw:1};
+    }
+  },p?`Saved ${nm} · PokéMart`:`${nm} marked as not buyable`);
+}
+function setAvatar(s,b,i,c,raw){
   const text=raw.replace(/\s+/g," ").trim();
   const it=sections()[s].blocks[b].items[i];
-  if(c==="PokéMart"){
-    const nm=it.name,k=shopKey(nm),p=text?parsePrice(text):null;
-    const cur=D.shop&&D.shop[k];
-    if(p){if(cur===p.hi)return}
-    else if(cur==null)return;
-    mutate(()=>{
-      D.shop=D.shop||{};
-      if(p)D.shop[k]=p.hi;else delete D.shop[k];
-    },p?`Saved ${nm} · PokéMart`:`${nm} marked as not buyable`);
-    return;
-  }
   const old=it.prices[c];
-  const loc=it.vloc&&it.vloc[c];
-  if(loc){
-    if(old&&old.t===text)return;
-    mutate(()=>{
-      const t=D.sections[loc[0]].blocks[loc[1]].items[loc[2]];
-      if(!text){delete t.prices[c];return}
-      t.prices[c]=entryFor(text,t.prices[c]);
-    },text?`Saved ${it.name} · ${c}`:`Cleared ${it.name} · ${c}`);
-    return;
-  }
   const had=D.overrides&&D.overrides[it.vkey]&&D.overrides[it.vkey][c];
   if(!text){
     if(!had)return;
@@ -364,7 +359,7 @@ function setVirtual(s,b,i,c,raw){
     },`Cleared ${it.name} · ${c}`);
     return;
   }
-  if(old&&!old.est&&old.t===text)return;
+  if(old&&old.t===text)return;
   mutate(()=>{
     D.overrides=D.overrides||{};
     D.overrides[it.vkey]=D.overrides[it.vkey]||{};

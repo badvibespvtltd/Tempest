@@ -107,3 +107,15 @@ html[data-theme=dark]
 html[data-theme=dark] .sp-legendary{background:#5b2f6b}
 html[data-theme=dark] .sp-ultrabeast{background:#1f4a68}
 html[data-theme=dark] .sp-paradox{background:#6b3228}
+html[data-theme=dark] .btn.ghost{background:linear-gradient(#34343b,#28282e);box-shadow:inset 0 1px 0 #ffffff12,0 1px 3px #0006}
+html[data-theme=dark] .btn.ghost:hover{background:linear-gradient(#3c3c44,#303037)}
+html[data-theme=dark] .btn.danger:hover{background:#3a2020}
+html[data-theme=dark] .qcard2,html[data-theme=dark] .qdash .qstatsbox{background:#1f1f24;border-color:#33343a}
+html[data-theme=dark] .qseg{box-shadow:0 1px 3px #0008}
+html[data-theme=dark] .tab,html[data-theme=dark] .pr-chip{background:linear-gradient(#34343b,#27272d);border-color:#4a4b54;color:#dcdce2;box-shadow:inset 0 1px 0 #ffffff12,0 1px 3px #0008}
+html[data-theme=dark] .tab:hover,html[data-theme=dark] .pr-chip:hover{background:linear-gradient(#3e3e46,#2f2f36)}
+html[data-theme=dark] .tab[aria-selected=true],html[data-theme=dark] .pr-chip[aria-pressed=true]{background:linear-gradient(#e8272b,#a80000);border-color:#ff5a5a;color:#fff;box-shadow:inset 0 1px 0 #ffffff44,0 4px 12px #c0000077}
+html[data-theme=dark] .sidebtn[aria-pressed=true]{background:linear-gradient(90deg,#34262a,#26262b);border-color:#5a3236;border-left-color:#ff4a4a;box-shadow:0 2px 8px #0008}
+html[data-theme=dark] .sidebtn:hover{background:#2a2a30}
+html[data-theme=dark] input:focus,html[data-theme=dark] select:focus{border-color:#ff6b61;box-shadow:0 0 0 3px #ff6b6133}
+html[data-theme=dark] .pr-fold:hover{background:#ffffff12}

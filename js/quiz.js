@@ -485,6 +485,7 @@ function home(){
     const on=k===pick,off=!av.includes(k);
     return `<button class="qtab" role="tab" type="button" data-k="${k}" style="${kVars(k)}" aria-selected="${on}" tabindex="${on?0:-1}"${off?" disabled":""}>${kIcon(k)}<span>${esc(KINDS[k])}</span></button>`;
   }).join("");
+  const tot=ORDER.reduce((a,k)=>{const t=S.t[k];if(t){a.n+=t.n||0;a.ok+=t.ok||0;a.ms+=t.ms||0}return a},{n:0,ok:0,ms:0});
   const rows=ORDER.map(k=>{
     const t=S.t[k],n=P[k]?P[k].length:0;
     const need=(k==="badge"||k==="footprint")&&!n;
@@ -492,21 +493,36 @@ function home(){
     return `<tr class="${n?"":"dim"}"><td>${kBadge(k)}</td><td>${n?n:(need?"run the crawler":"none")}</td>${adm()?`<td>${gg?gg.n+" / "+n:"–"}</td>`:""}<td>${t?t.n:0}</td><td>${t&&t.n?Math.round(100*t.ok/t.n)+"%":"–"}</td><td>${t&&t.n?(t.ms/t.n/1000).toFixed(1)+"s":"–"}</td></tr>`;
   }).join("");
   box.innerHTML=`
-  <div class="qhome">
-    <p>Practice for the Pokemon Vortex Discord Quiz.</p>
-    <div class="qform"><button class="btn" id="qstart" type="button"${av.length?"":" disabled"}>Start quiz (10 questions)</button></div>
-    <div class="qopts">
-      <div class="qopt"><span>Timer</span><div class="qseg" role="group" aria-label="Time per question">${LIMITS.map(l=>`<button type="button" class="qsegb" data-lim="${l}" aria-pressed="${(+opt().limit||0)===l}">${l?l+"s":"Off"}</button>`).join("")}</div></div>
-      <label class="qopt qchk"><input type="checkbox" id="qauto"${opt().auto!==false?" checked":""}><span>Auto-advance after a correct answer</span></label>
-    </div>
-    <div class="qdrillhead">Drill a single type</div>
-    <div class="qtabs" role="tablist" aria-label="Drill type">${tabs}</div>
-    <div class="qform qmodes">
+  <div class="qhome qdash">
+    <section class="qhero">
+      <div class="qhero-txt"><h3>Ready to practise?</h3><p>Ten random questions from every Pokémon Vortex Discord quiz category.</p></div>
+      <div class="qhero-act"><button class="btn big" id="qstart" type="button"${av.length?"":" disabled"}>Start quiz (10 questions)</button></div>
+      <div class="qkpis">
+        <div class="qkpi"><b>${tot.n}</b><span>Asked</span></div>
+        <div class="qkpi"><b>${tot.n?Math.round(100*tot.ok/tot.n)+"%":"–"}</b><span>Accuracy</span></div>
+        <div class="qkpi"><b>${tot.n?(tot.ms/tot.n/1000).toFixed(1)+"s":"–"}</b><span>Avg time</span></div>
+        <div class="qkpi"><b>${av.length}</b><span>Categories</span></div>
+      </div>
+    </section>
+    <div class="qcols">
+      <section class="qcard2">
+        <h4>Quiz options</h4>
+        <div class="qopts">
+          <div class="qopt"><span>Timer</span><div class="qseg" role="group" aria-label="Time per question">${LIMITS.map(l=>`<button type="button" class="qsegb" data-lim="${l}" aria-pressed="${(+opt().limit||0)===l}">${l?l+"s":"Off"}</button>`).join("")}</div></div>
+          <label class="qopt qchk"><input type="checkbox" id="qauto"${opt().auto!==false?" checked":""}><span>Auto-advance after a correct answer</span></label>
+        </div>
+      </section>
+      <section class="qcard2">
+        <h4>Drill a single type</h4>
+        <div class="qtabs" role="tablist" aria-label="Drill type">${tabs}</div>
+        <div class="qform qmodes">
       <button class="btn qdrillbtn" id="qstudy" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Study sheet":"Study sheet"}</button>
       ${adm()?`<button class="btn qdrillbtn" id="qbuild" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Build up":"Build up"}</button>`:""}
       <button class="btn qdrillbtn" id="qdrill" type="button"${pick?"":" disabled"}${pick?` style="${kVars(pick)}"`:""}>${pick?kIcon(pick)+"Drill (10)":"Drill (10)"}</button>
     </div>
     ${pick&&adm()?buildLine(pick):""}
+      </section>
+    </div>
     <details class="qstatsbox"><summary>Your stats</summary>
     <table class="qtable"><thead><tr><th>Type</th><th>Items</th>${adm()?"<th>Build-up</th>":""}<th>Asked</th><th>Right</th><th>Avg time</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="qform"><button class="btn ghost small" id="qreset" type="button">Reset quiz stats</button></div></details>

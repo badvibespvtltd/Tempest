@@ -74,7 +74,7 @@ function groupKey(kind,it){
   if(kind==="badge")return it.region;
   if(kind==="evolevel")return "Level "+String(it.level).padStart(3,"0");
   if(kind==="evoitem")return it.item;
-  if(kind==="types")return tp(it)[0];
+  if(kind==="types")return V.sort==="mon"?tp(it)[0]:String(it.names.length).padStart(3,"0");
   if(kind==="scramblemon"||kind==="scramblemove")return String(it.name.replace(/[^A-Za-z0-9]/g,"").length).padStart(2,"0")+" letters";
   return "";
 }
@@ -82,7 +82,7 @@ function headLabel(kind,k,n){
   if(kind==="evolevel")return `Level ${+k.slice(6)}`;
   if(kind==="evoitem")return `${itemIcon(k)}${E(k)}`;
   if(kind==="scramblemon"||kind==="scramblemove")return `${+k.slice(0,2)} letters`;
-  if(kind==="types")return pill(k)+" and…";
+  if(kind==="types")return V.sort==="mon"?pill(k)+" and…":`${+k} possible answer${+k===1?"":"s"}`;
   return E(k);
 }
 function sortList(kind,list){
@@ -103,7 +103,7 @@ function sortList(kind,list){
 }
 function grouped(kind){
   if(kind==="evolevel"||kind==="evoitem")return V.sort==="answer";
-  if(kind==="types")return false;
+  if(kind==="types")return V.sort!=="mon";
   return true;
 }
 
@@ -118,7 +118,10 @@ function body(){
   const groups=new Map();
   list.forEach(it=>{const k=groupKey(kind,it);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(it)});
   let keys=[...groups.keys()];
-  if(kind==="types"){const o=Object.keys(C.TC);keys.sort((a,b)=>o.indexOf(a)-o.indexOf(b))}
+  if(kind==="types"){
+    if(V.sort==="mon"){const o=Object.keys(C.TC);keys.sort((a,b)=>o.indexOf(a)-o.indexOf(b))}
+    else keys.sort((a,b)=>V.sort==="countdesc"?cmp(b,a):cmp(a,b));
+  }
   return keys.map(k=>`<section class="vs-grp"><h4>${headLabel(kind,k)}<small>${groups.get(k).length}</small></h4><div class="${cls}">${groups.get(k).map(it=>tile(kind,it)).join("")}</div></section>`).join("");
 }
 function paint(){
@@ -130,11 +133,11 @@ function paint(){
 function open(kind){
   core();
   V.kind=kind;V.q="";V.hide=true;V.sort="mon";
-  const hasSort=kind==="evolevel"||kind==="evoitem";
-  const tip={footprint:"Click a footprint to reveal its Pokémon, click again to hide it.",badge:"Click a badge to reveal its name, click again to hide it.",whos:"Silhouettes until you click one. Click again to hide it.",types:"Click a type pair to reveal its Pokémon, click again to hide them.",evolevel:"Click an evolution to reveal its level. Sorting by level shows the groups.",evoitem:"Click an evolution to reveal its item. Sorting by item shows the groups.",scramblemon:"Names are hidden until clicked. Type scrambled letters in any order to find a name.",scramblemove:"Names are hidden until clicked. Type scrambled letters in any order to find a name."}[kind]||"";
+  const hasSort=kind==="evolevel"||kind==="evoitem"||kind==="types";
+  const tip={footprint:"Click a footprint to reveal its Pokémon, click again to hide it.",badge:"Click a badge to reveal its name, click again to hide it.",whos:"Silhouettes until you click one. Click again to hide it.",types:"Click a type pair to reveal its Pokémon, click again to hide them. Sort by answers to group pairs by how many Pokémon fit.",evolevel:"Click an evolution to reveal its level. Sorting by level shows the groups.",evoitem:"Click an evolution to reveal its item. Sorting by item shows the groups.",scramblemon:"Names are hidden until clicked. Type scrambled letters in any order to find a name.",scramblemove:"Names are hidden until clicked. Type scrambled letters in any order to find a name."}[kind]||"";
   $("#qbody").innerHTML=`<div class="vs">
   <div class="vs-head"><button class="btn ghost small" id="qhome" type="button">← Back</button><h3>${C.kBadge(kind)}<span>Study sheet</span></h3></div>
-  <div class="vs-tools"><input type="search" id="vsq" placeholder="Search" aria-label="Search this sheet"><label class="vs-chk"><input type="checkbox" id="vsshow"> Show answers</label>${hasSort?`<label class="vs-chk">Sort <select id="vssort"><option value="mon">By Pokémon</option><option value="answer">${kind==="evolevel"?"By level":"By item"}</option></select></label>`:""}<span id="vscount"></span></div>
+  <div class="vs-tools"><input type="search" id="vsq" placeholder="Search" aria-label="Search this sheet"><label class="vs-chk"><input type="checkbox" id="vsshow"> Show answers</label>${hasSort?`<label class="vs-chk">Sort <select id="vssort"><option value="mon">By Pokémon</option>${kind==="types"?`<option value="mon">By type</option><option value="count">Fewest answers first</option><option value="countdesc">Most answers first</option>`:`<option value="mon">By Pokémon</option><option value="answer">${kind==="evolevel"?"By level":"By item"}</option>`}</select></label>`:""}<span id="vscount"></span></div>
   <p class="qnote">${E(tip)}</p>
   <div id="vsbody"></div></div>`;
   paint();

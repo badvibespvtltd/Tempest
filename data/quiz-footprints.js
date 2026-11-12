@@ -3663,22 +3663,6 @@ window.VORTEX_QUIZ_FOOTPRINTS = {
    "Swanna"
   ]
  },
- "585": {
-  "file": "585.png",
-  "gen": "IV-V",
-  "bulbapedia": "Deerling Spring Form",
-  "names": [
-   "Deerling (Spring)"
-  ]
- },
- "586": {
-  "file": "586.png",
-  "gen": "IV-V",
-  "bulbapedia": "Sawsbuck Spring Form",
-  "names": [
-   "Sawsbuck (Spring)"
-  ]
- },
  "587": {
   "file": "587.png",
   "gen": "IV-V",
@@ -3973,14 +3957,6 @@ window.VORTEX_QUIZ_FOOTPRINTS = {
   "bulbapedia": "Keldeo Ordinary Form",
   "names": [
    "Keldeo"
-  ]
- },
- "648": {
-  "file": "648.png",
-  "gen": "IV-V",
-  "bulbapedia": "Meloetta Aria Forme",
-  "names": [
-   "Meloetta (Aria)"
   ]
  },
  "649": {

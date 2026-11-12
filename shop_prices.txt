@@ -1,0 +1,42 @@
+Pokéball | 250
+Great Ball | 800
+Ultra Ball | 1,500
+Dive Ball | 5,000
+Dusk Ball | 5,000
+Moon Ball | 5,000
+Net Ball | 5,000
+Love Ball | 5,000
+Dawn Stone | 5,000
+Dusk Stone | 5,000
+Fire Stone | 3,000
+Leaf Stone | 3,000
+Moon Stone | 4,000
+Oval Stone | 5,000
+Shiny Stone | 5,000
+Sun Stone | 5,000
+Thunder Stone | 3,000
+Water Stone | 3,000
+Deep Sea Scale | 5,000
+Deep Sea Tooth | 5,000
+Dragon Scale | 5,000
+Dubious Disc | 5,000
+Electirizer | 5,000
+Magmarizer | 5,000
+Kings Rock | 5,000
+Metal Coat | 5,000
+Prism Scale | 5,000
+Protector | 5,000
+Razor Claw | 5,000
+Razor Fang | 5,000
+Reaper Cloth | 5,000
+Up Grade | 5,000
+Sachet | 5,000
+Whipped Dream | 5,000
+Blastoisinite | 15,000
+Blazikenite | 15,000
+Charizardite X | 15,000
+Charizardite Y | 15,000
+Sceptilite | 15,000
+Swampertite | 15,000
+Venusaurite | 15,000
+DNA Splicers | 500,000

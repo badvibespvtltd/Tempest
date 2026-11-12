@@ -7,7 +7,7 @@
     if(b)b.textContent=t==="dark"?"Light mode":"Dark mode";
   }
   apply(get());
-  function view(){var v=(location.hash||"#home").slice(1);return["home","dex","quiz","prices"].indexOf(v)<0?"home":v}
+  function view(){var v=(location.hash||"#home").slice(1);return["home","dex","mydex","quiz","prices"].indexOf(v)<0?"home":v}
   document.documentElement.setAttribute("data-page",view());
   document.addEventListener("DOMContentLoaded",function(){apply(get())});
   document.addEventListener("click",function(e){

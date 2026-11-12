@@ -119,3 +119,4 @@ html[data-theme=dark] .sidebtn[aria-pressed=true]{background:linear-gradient(90d
 html[data-theme=dark] .sidebtn:hover{background:#2a2a30}
 html[data-theme=dark] input:focus,html[data-theme=dark] select:focus{border-color:#ff6b61;box-shadow:0 0 0 3px #ff6b6133}
 html[data-theme=dark] .pr-fold:hover{background:#ffffff12}
+html[data-theme=dark] .fx-label{background:#0a0a0cdb;border-color:#ffffff22}

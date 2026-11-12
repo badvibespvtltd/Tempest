@@ -45,8 +45,8 @@ function loadState(){
       lsSet(LS_STAMP,stamp);
     }
   }
-  profile="clan";
-  if(adminOn()&&prefs.profile==="mine"){profile="mine";owned=loadOwned("mine")}
+  profile=location.hash==="#mydex"?"mine":"clan";
+  if(profile==="mine")owned=loadOwned("mine");
 }
 const adminOn=()=>typeof window.isOwner==="function"&&window.isOwner();
 function loadOwned(p){
@@ -627,7 +627,7 @@ function renderResult(){
     const head=`<div class="nhead">${n.rec?iconTag(n.rec):""}<button type="button" class="nname" ${n.rec?`data-name="${n.rec.idx}"`:"disabled"}>${esc(n.name)}</button>${viaText(n)}<span class="st ${st}">${label}</span><span class="vchips">${chips}</span></div>`;
     return `<li class="node ${st}" style="margin-left:${Math.min(n.depth,4)*16}px">${head}${n.rec?`<div class="where">${whereHTML(n.rec)}</div>`:""}</li>`;
   });
-  const head=`<div class="dhead"><h3>${esc(root.name)}: evolution line</h3><span class="sp"></span>${window.isOwner&&window.isOwner()?`<button type="button" class="btn ghost small dedit">Edit</button>`:""}<button type="button" class="btn ghost small dclose">Close</button></div>`;
+  const head=`<div class="dhead"><h3>${esc(root.name)}: evolution line</h3><span class="sp"></span>${window.isOwner&&window.isOwner()&&profile==="clan"?`<button type="button" class="btn ghost small dedit">Edit</button>`:""}<button type="button" class="btn ghost small dclose">Close</button></div>`;
   box.setAttribute("aria-label",`Details for ${root.name}`);
   const note=prefs.onlyMissing?`<p style="margin:0 0 8px;font-size:12px;color:var(--muted)">Showing only the incomplete evolutions. Untick "Only incomplete" to see the whole line.</p>`:"";
   box.innerHTML=head+note+`<ul class="line">${rows.join("")}</ul>`;
@@ -750,27 +750,28 @@ function applyMissing(text){
   return r;
 }
 function updateProfileUI(){
-  const adm=adminOn();
-  document.querySelectorAll("[data-profile]").forEach(b=>{
-    b.hidden=!adm;
-    b.setAttribute("aria-pressed",String(b.dataset.profile===profile));
-  });
-  $("#btnMissing").hidden=!(adm&&profile==="mine");
-  $("#btnSite").hidden=profile==="mine";
+  const mine=profile==="mine",can=mine||adminOn();
+  $("#btnMissing").hidden=!mine;
+  $("#btnSite").hidden=mine;
+  $("#btnManage").hidden=!can;
+  if(!can&&manage)setManage(false);
+  const dt=$("#dexTools");
+  if(dt&&!$("#app").hidden)dt.hidden=!can;
+  const dsec=$("#dex");
+  if(dsec)dsec.setAttribute("aria-label",mine?"My Pokédex":"Clan Pokédex");
 }
 function setProfile(p){
-  if(p===profile||!adminOn())return;
+  if(p===profile)return;
   persist();
+  if(manage)setManage(false);
   profile=p;
-  prefs.profile=p;
-  persistPrefs();
-  owned=loadOwned(p);
+  owned=p==="mine"?loadOwned("mine"):loadOwned("clan");
   undoSnapshot=null;
   undoCustom=null;
   closeDetail();
   updateProfileUI();
   renderGrid();
-  toast(p==="mine"?"Showing your own Pokédex":"Showing the clan Pokédex");
+  renderResult();
 }
 function toast(text,withUndo){
   $("#toastText").textContent=text;
@@ -933,8 +934,6 @@ document.addEventListener("click",e=>{
     setManage(true);
     return
   }
-  const pf=t.closest("[data-profile]");
-  if(pf){setProfile(pf.dataset.profile);return}
   if(t.closest("#btnMissing")){
     $("#missingText").value=lsGet(LS_MISSING)||"";
     $("#missingInfo").textContent="";
@@ -1031,6 +1030,7 @@ $("#fileData").addEventListener("change",e=>{
   rd.readAsText(f);
 });
 
+window.ClanDexApp={setProfile};
 if(window.VORTEX_DATA&&(window.VORTEX_DATA.pokemon||Object.keys(window.VORTEX_DATA).length)){
   loadState();
   init(window.VORTEX_DATA);
